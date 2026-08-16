@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alerts — SchoolStock</title>
+  <meta name="description" content="Inventory alerts — view out-of-stock and low-stock items that need attention." />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/pages.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body>
+  <div class="app-layout">
+    <div id="sidebar-root"></div>
+
+    <div class="main-content">
+      <header class="page-header">
+        <h1 class="page-title"><i class="fas fa-bell" aria-hidden="true"></i> Alerts</h1>
+        <button class="btn btn-ghost" id="btn-refresh-alerts" aria-label="Refresh alerts">
+          <i class="fas fa-rotate-right" aria-hidden="true"></i> Refresh
+        </button>
+      </header>
+
+      <div class="page-body">
+        <div id="alerts-error" class="alert-banner alert-banner--error" hidden role="alert"></div>
+
+        <!-- Summary chips -->
+        <div class="alerts-summary" id="alerts-summary" aria-label="Alert summary"></div>
+
+        <!-- Alert sections rendered by alerts.js -->
+        <div id="alerts-content">
+          <div class="spinner-wrapper">
+            <div class="spinner"></div>
+            <p class="spinner-text">Checking inventory…</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/alerts.js"></script>
+</body>
+</html>

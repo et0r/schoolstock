@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Item Detail — SchoolStock</title>
+  <meta name="description" content="View full item information and transaction history." />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/pages.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body>
+<div class="app-layout">
+  <!-- Sidebar injected by nav.js -->
+  <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation"></aside>
+
+  <div class="main-content">
+    <!-- Page header -->
+    <header class="page-header" id="page-header">
+      <div style="display:flex;align-items:center;gap:0.75rem;">
+        <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open navigation" aria-expanded="false">
+          <i class="fas fa-bars"></i>
+        </button>
+        <h1 class="page-title" id="page-title-el">
+          <i class="fas fa-box-open"></i> Item Detail
+        </h1>
+      </div>
+      <div style="display:flex;gap:0.6rem;" id="header-actions"></div>
+    </header>
+
+    <main class="page-body" id="detail-body">
+      <div class="spinner-wrapper">
+        <div class="spinner"></div>
+        <p class="spinner-text">Loading item…</p>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Log Movement Modal -->
+<div class="modal-overlay" id="movement-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="movement-modal-title">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="movement-modal-title">
+        <i class="fas fa-arrow-right-arrow-left"></i> Log Stock Movement
+      </span>
+      <button class="modal-close" id="movement-modal-close" aria-label="Close">
+        <i class="fas fa-xmark"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div id="movement-modal-error" class="alert-banner alert-banner--error" hidden role="alert"></div>
+      <form id="movement-form" novalidate>
+        <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+          <div class="form-group">
+            <label for="mv-type">Type <span class="required">*</span></label>
+            <select id="mv-type" class="form-control" required>
+              <option value="added">Added (stock in)</option>
+              <option value="returned">Returned</option>
+              <option value="issued">Issued (stock out)</option>
+              <option value="removed">Removed / written off</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="mv-qty">Quantity <span class="required">*</span></label>
+            <input type="number" id="mv-qty" class="form-control" min="1" step="1" placeholder="e.g. 5" required />
+            <span class="field-error" id="err-mv-qty" hidden></span>
+          </div>
+          <div class="form-group form-group--full">
+            <label for="mv-notes">Notes</label>
+            <input type="text" id="mv-notes" class="form-control" placeholder="Optional reason or reference" />
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="movement-cancel-btn">Cancel</button>
+      <button class="btn btn-primary" id="movement-save-btn">
+        <i class="fas fa-check"></i> Save Movement
+      </button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { apiGet, apiPost } from './js/api.js';
+import { requireAuth, isAdmin, getUser } from './js/auth.js';
+import { initNav }  from './js/nav.js';
+import { esc, setLoading } from './js/products.js'; // reuse helpers
+
+requireAuth();
+initNav('products'); // highlight Inventory in sidebar
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function esc(str) {
+  const d = document.createElement('div');
+  d.textContent = str ?? '';
+  return d.innerHTML;
+}
+
+function setLoading(btn, label) {
+  const orig = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${label}`;
+  return () => { btn.disabled = false; btn.innerHTML = orig; };
+}
+
+function stockStatus(qty) {
+  if (qty === 0) return 'out';
+  if (qty <= 10)  return 'low';
+  return 'ok';
+}
+
+function statusBadge(qty) {
+  const s = stockStatus(qty);
+  if (s === 'out') return `<span class="badge badge-danger"><i class="fas fa-circle-xmark"></i> Out of Stock</span>`;
+  if (s === 'low') return `<span class="badge badge-warning"><i class="fas fa-triangle-exclamation"></i> Low Stock</span>`;
+  return `<span class="badge badge-success"><i class="fas fa-circle-check"></i> In Stock</span>`;
+}
+
+function typeLabel(type) {
+  return { added: 'Added', returned: 'Returned', issued: 'Issued', removed: 'Removed' }[type] || type;
+}
+
+function typeBadgeClass(type) {
+  if (type === 'added' || type === 'returned') return 'badge-stock-in';
+  return 'badge-stock-out';
+}
+
+function typeIcon(type) {
+  if (type === 'added')    return 'fa-circle-plus';
+  if (type === 'returned') return 'fa-rotate-left';
+  if (type === 'issued')   return 'fa-circle-minus';
+  return 'fa-trash';
+}
+
+function fmtDate(ts) {
+  return new Date(ts).toLocaleString('en-GB', {
+    day:'2-digit', month:'short', year:'numeric',
+    hour:'2-digit', minute:'2-digit'
+  });
+}
+
+// ── Read item ID from URL ──────────────────────────────────────────────────
+const params = new URLSearchParams(location.search);
+const itemId = Number(params.get('id'));
+const body   = document.getElementById('detail-body');
+
+if (!itemId) {
+  body.innerHTML = `<div class="empty-state"><i class="fas fa-triangle-exclamation"></i><p>No item ID provided. <a href="products.html" style="color:var(--color-accent)">Back to Inventory</a></p></div>`;
+} else {
+  loadDetail();
+}
+
+// ── Load & render ──────────────────────────────────────────────────────────
+async function loadDetail() {
+  try {
+    const data = await apiGet(`/api/items/${itemId}`);
+    const { item, transactions } = data;
+
+    // Update page title
+    document.title = `${item.name} — SchoolStock`;
+    document.getElementById('page-title-el').innerHTML =
+      `<i class="fas fa-box-open"></i> ${esc(item.name)}`;
+
+    // Header actions
+    const ha = document.getElementById('header-actions');
+    ha.innerHTML = `
+      <a href="products.html" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Back
+      </a>
+      <button class="btn btn-primary" id="btn-log-movement">
+        <i class="fas fa-arrow-right-arrow-left"></i> Log Movement
+      </button>
+    `;
+    document.getElementById('btn-log-movement').addEventListener('click', openMovementModal);
+
+    const s   = stockStatus(item.quantity);
+    const img = item.image_url
+      ? `<img src="${esc(item.image_url)}" alt="${esc(item.name)}" style="width:100%;height:100%;object-fit:cover;border-radius:var(--radius-lg);" />`
+      : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--color-text-faint);font-size:2.5rem;"><i class="fas fa-image"></i></div>`;
+
+    body.innerHTML = `
+      <!-- Top info card -->
+      <div class="card section-gap">
+        <div class="card-body" style="display:grid;grid-template-columns:200px 1fr;gap:2rem;align-items:start;">
+          <div style="width:200px;height:200px;border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--color-border);background:var(--color-bg);flex-shrink:0;">
+            ${img}
+          </div>
+          <div>
+            <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;margin-bottom:0.5rem;">
+              <h2 style="font-size:1.5rem;font-weight:800;color:var(--color-text);letter-spacing:-0.5px;">${esc(item.name)}</h2>
+              ${statusBadge(item.quantity)}
+            </div>
+            ${item.sku ? `<p style="font-size:0.82rem;color:var(--color-text-muted);margin-bottom:1rem;">SKU: ${esc(item.sku)}</p>` : ''}
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1rem;margin-top:1rem;">
+              ${infoBox('fa-cubes','Quantity',`<span class="qty-tag ${s}" style="font-size:1.1rem;padding:0.3rem 0.8rem;">${item.quantity}</span>`)}
+              ${infoBox('fa-tag','Category', esc(item.category || '—'))}
+              ${infoBox('fa-building','Department', esc(item.department || '—'))}
+              ${infoBox('fa-circle-info','Condition', esc(item.condition || '—'))}
+              ${infoBox('fa-ruler','Unit', esc(item.unit || '—'))}
+              ${infoBox('fa-calendar','Added', item.created_at ? fmtDate(item.created_at) : '—')}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Transaction history -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title"><i class="fas fa-clock-rotate-left"></i> Transaction History</span>
+          <span style="font-size:0.78rem;color:var(--color-text-muted);">Last 20 entries</span>
+        </div>
+        ${transactions.length === 0
+          ? `<div class="empty-state"><i class="fas fa-clock-rotate-left"></i><p>No transactions recorded for this item yet.</p></div>`
+          : `<div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Qty Changed</th>
+                    <th>Performed By</th>
+                    <th>Date &amp; Time</th>
+                    <th>Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${transactions.map(tx => `
+                    <tr>
+                      <td>
+                        <span class="badge ${typeBadgeClass(tx.type)}">
+                          <i class="fas ${typeIcon(tx.type)}"></i>
+                          ${typeLabel(tx.type)}
+                        </span>
+                      </td>
+                      <td>
+                        <span style="font-weight:700;color:${tx.type==='added'||tx.type==='returned'?'var(--color-success-dark)':'var(--color-danger)'};">
+                          ${tx.type==='added'||tx.type==='returned' ? '+' : '-'}${tx.quantity_changed}
+                        </span>
+                      </td>
+                      <td class="td-muted">${esc(tx.performed_by || 'Unknown')}</td>
+                      <td class="td-muted" style="white-space:nowrap;">${fmtDate(tx.timestamp)}</td>
+                      <td class="td-muted">${esc(tx.notes || '—')}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>`
+        }
+      </div>
+    `;
+
+    // Mobile: collapse image
+    if (window.innerWidth <= 640) {
+      const grid = body.querySelector('[style*="grid-template-columns:200px"]');
+      if (grid) grid.style.gridTemplateColumns = '1fr';
+    }
+
+  } catch (err) {
+    body.innerHTML = `<div class="alert-banner alert-banner--error"><i class="fas fa-triangle-exclamation"></i> ${esc(err.message || 'Failed to load item.')}</div>`;
+  }
+}
+
+function infoBox(icon, label, value) {
+  return `
+    <div style="background:var(--color-bg);border-radius:var(--radius-md);padding:0.85rem 1rem;border:1px solid var(--color-border-light);">
+      <p style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--color-text-muted);margin-bottom:0.35rem;">
+        <i class="fas ${icon}" style="margin-right:0.3rem;color:var(--color-accent);"></i>${label}
+      </p>
+      <p style="font-size:0.95rem;font-weight:600;color:var(--color-text);">${value}</p>
+    </div>`;
+}
+
+// ── Log Movement Modal ─────────────────────────────────────────────────────
+const overlay   = document.getElementById('movement-modal-overlay');
+const errBanner = document.getElementById('movement-modal-error');
+const saveBtn   = document.getElementById('movement-save-btn');
+const cancelBtn = document.getElementById('movement-cancel-btn');
+const closeBtn  = document.getElementById('movement-modal-close');
+
+function openMovementModal() {
+  errBanner.hidden = true;
+  document.getElementById('movement-form').reset();
+  overlay.classList.add('open');
+}
+
+function closeMovementModal() { overlay.classList.remove('open'); }
+
+cancelBtn.addEventListener('click', closeMovementModal);
+closeBtn.addEventListener('click',  closeMovementModal);
+overlay.addEventListener('click', (e) => { if (e.target === overlay) closeMovementModal(); });
+
+saveBtn.addEventListener('click', async () => {
+  errBanner.hidden = true;
+  const type     = document.getElementById('mv-type').value;
+  const qty      = Number(document.getElementById('mv-qty').value);
+  const notes    = document.getElementById('mv-notes').value.trim();
+  const errQty   = document.getElementById('err-mv-qty');
+
+  if (!qty || qty < 1) {
+    errQty.textContent = 'Enter a quantity of at least 1.';
+    errQty.hidden = false;
+    return;
+  }
+  errQty.hidden = true;
+
+  const restore = setLoading(saveBtn, 'Saving…');
+  try {
+    await apiPost('/api/transactions', {
+      item_id: itemId,
+      type,
+      quantity_changed: qty,
+      notes: notes || null,
+    });
+    closeMovementModal();
+    loadDetail(); // refresh page
+  } catch (err) {
+    errBanner.textContent = err.message || 'Failed to log movement.';
+    errBanner.hidden = false;
+  } finally {
+    restore();
+  }
+});
+</script>
+</body>
+</html>

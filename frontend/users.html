@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>User Management — SchoolStock</title>
+  <meta name="description" content="Admin panel to view and manage staff user accounts and roles." />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/pages.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation"></aside>
+
+  <div class="main-content">
+    <header class="page-header">
+      <div style="display:flex;align-items:center;gap:0.75rem;">
+        <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open navigation" aria-expanded="false">
+          <i class="fas fa-bars"></i>
+        </button>
+        <h1 class="page-title">
+          <i class="fas fa-users-gear"></i> User Management
+        </h1>
+      </div>
+      <!-- No add-user button: self-registration only. Admin promotes via this page. -->
+    </header>
+
+    <main class="page-body">
+      <div id="users-error"   class="alert-banner alert-banner--error"   hidden role="alert"></div>
+      <div id="users-success" class="alert-banner alert-banner--success" hidden role="status"></div>
+
+      <!-- Info strip -->
+      <div class="alert-banner alert-banner--info" style="margin-bottom:1.5rem;" role="note">
+        <i class="fas fa-circle-info" style="margin-top:0.1rem;flex-shrink:0;"></i>
+        <span>
+          New users register themselves as <strong>Staff</strong>. Use this page to promote them to
+          <strong>Admin</strong> or <strong>Clerk</strong>. You cannot change your own role.
+        </span>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title"><i class="fas fa-users"></i> All Accounts</span>
+          <span id="users-count" style="font-size:0.8rem;color:var(--color-text-muted);"></span>
+        </div>
+
+        <!-- Desktop table -->
+        <div class="table-view table-wrapper">
+          <table aria-label="Users table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Joined</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody">
+              <tr><td colspan="5">
+                <div class="spinner-wrapper"><div class="spinner"></div><p class="spinner-text">Loading users…</p></div>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Mobile card grid -->
+        <div class="product-card-grid" id="users-card-grid" style="padding:1rem;">
+          <div class="spinner-wrapper"><div class="spinner"></div><p class="spinner-text">Loading users…</p></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Delete User Confirmation Modal -->
+<div class="modal-overlay" id="delete-user-overlay" role="dialog" aria-modal="true" aria-labelledby="delete-user-title">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <span class="modal-title" id="delete-user-title" style="color:var(--color-danger);">
+        <i class="fas fa-trash"></i> Delete User
+      </span>
+      <button class="modal-close" id="delete-user-close" aria-label="Close"><i class="fas fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div id="delete-user-error" class="alert-banner alert-banner--error" hidden role="alert"></div>
+      <p style="color:var(--color-text);">
+        Are you sure you want to delete <strong id="delete-user-name"></strong>?
+        This cannot be undone. Any transactions they logged will remain in the audit trail.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="delete-user-cancel">Cancel</button>
+      <button class="btn btn-danger"    id="delete-user-confirm">
+        <i class="fas fa-trash"></i> Delete
+      </button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { apiGet, apiPatch, apiDelete } from './js/api.js';
+import { requireAuth, isAdmin, getUser } from './js/auth.js';
+import { initNav } from './js/nav.js';
+
+requireAuth();
+// Only admins can see this page
+if (!isAdmin()) {
+  window.location.href = 'dashboard.html';
+}
+
+initNav('users');
+
+const tbody      = document.getElementById('users-tbody');
+const cardGrid   = document.getElementById('users-card-grid');
+const errBanner  = document.getElementById('users-error');
+const okBanner   = document.getElementById('users-success');
+const countEl    = document.getElementById('users-count');
+
+const me = getUser(); // current logged-in user
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function esc(str) {
+  const d = document.createElement('div');
+  d.textContent = str ?? '';
+  return d.innerHTML;
+}
+
+function roleBadge(role) {
+  const map = {
+    admin:  'badge-danger',
+    clerk:  'badge-info',
+    staff:  'badge-muted',
+  };
+  const icons = { admin:'fa-shield', clerk:'fa-id-badge', staff:'fa-user' };
+  return `<span class="badge ${map[role] || 'badge-muted'}"><i class="fas ${icons[role] || 'fa-user'}"></i> ${role}</span>`;
+}
+
+function fmtDate(ts) {
+  if (!ts) return '—';
+  return new Date(ts).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+}
+
+function setLoading(btn, label) {
+  const orig = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${label}`;
+  return () => { btn.disabled = false; btn.innerHTML = orig; };
+}
+
+function showError(msg) { errBanner.textContent = msg; errBanner.hidden = false; okBanner.hidden = true; }
+function showSuccess(msg) { okBanner.textContent = msg; okBanner.hidden = false; errBanner.hidden = true; setTimeout(() => okBanner.hidden = true, 4000); }
+
+// ── Load users ─────────────────────────────────────────────────────────────
+let allUsers = [];
+
+async function loadUsers() {
+  try {
+    const data = await apiGet('/api/users');
+    allUsers = data.users || [];
+    countEl.textContent = `${allUsers.length} account${allUsers.length !== 1 ? 's' : ''}`;
+    renderUsers();
+  } catch (err) {
+    showError(err.message || 'Failed to load users.');
+    tbody.innerHTML = '';
+    cardGrid.innerHTML = '';
+  }
+}
+
+function renderUsers() {
+  if (!allUsers.length) {
+    const empty = `<div class="empty-state"><i class="fas fa-users"></i><p>No users found.</p></div>`;
+    tbody.innerHTML = `<tr><td colspan="5">${empty}</td></tr>`;
+    cardGrid.innerHTML = empty;
+    return;
+  }
+
+  // ── Table rows ─────────────────────────────────────────────────────────
+  tbody.innerHTML = allUsers.map(u => {
+    const isSelf = u.id === me?.userId;
+    const roleOptions = ['admin','clerk','staff']
+      .filter(r => r !== u.role)
+      .map(r => `<option value="${r}">${r.charAt(0).toUpperCase() + r.slice(1)}</option>`)
+      .join('');
+
+    return `
+      <tr>
+        <td class="td-muted" style="font-size:0.78rem;">${u.id}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:0.6rem;">
+            <div style="width:2rem;height:2rem;border-radius:50%;background:var(--gradient-accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;flex-shrink:0;">
+              ${esc(u.username.slice(0,2).toUpperCase())}
+            </div>
+            <span class="fw-600">${esc(u.username)}</span>
+            ${isSelf ? '<span class="badge badge-accent" style="font-size:0.62rem;">You</span>' : ''}
+          </div>
+        </td>
+        <td>${roleBadge(u.role)}</td>
+        <td class="td-muted">${fmtDate(u.created_at)}</td>
+        <td>
+          <div class="td-actions">
+            ${isSelf ? '<span style="font-size:0.75rem;color:var(--color-text-faint);">—</span>' : `
+              <select class="form-control role-select" data-id="${u.id}" style="font-size:0.78rem;padding:0.35rem 0.6rem;width:auto;min-width:90px;">
+                <option value="${u.role}" selected disabled>${u.role.charAt(0).toUpperCase() + u.role.slice(1)}</option>
+                ${roleOptions}
+              </select>
+              <button class="btn-action-edit btn-promote" data-id="${u.id}" title="Apply role change">
+                <i class="fas fa-check"></i>
+              </button>
+              <button class="btn-action-delete btn-delete-user" data-id="${u.id}" data-name="${esc(u.username)}" title="Delete user">
+                <i class="fas fa-trash"></i>
+              </button>
+            `}
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+
+  // ── Mobile cards ───────────────────────────────────────────────────────
+  cardGrid.innerHTML = allUsers.map(u => {
+    const isSelf = u.id === me?.userId;
+    const roleOptions = ['admin','clerk','staff']
+      .filter(r => r !== u.role)
+      .map(r => `<option value="${r}">${r.charAt(0).toUpperCase() + r.slice(1)}</option>`)
+      .join('');
+
+    return `
+      <div class="product-card">
+        <div style="width:3rem;height:3rem;border-radius:50%;background:var(--gradient-accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:0.85rem;font-weight:700;flex-shrink:0;">
+          ${esc(u.username.slice(0,2).toUpperCase())}
+        </div>
+        <div class="product-card-body">
+          <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+            <p class="product-card-name">${esc(u.username)}</p>
+            ${isSelf ? '<span class="badge badge-accent" style="font-size:0.62rem;">You</span>' : ''}
+          </div>
+          <div class="product-card-meta">
+            <span>${roleBadge(u.role)}</span>
+            <span><i class="fas fa-calendar"></i> ${fmtDate(u.created_at)}</span>
+          </div>
+          ${!isSelf ? `
+          <div style="display:flex;gap:0.5rem;margin-top:0.65rem;flex-wrap:wrap;">
+            <select class="form-control role-select" data-id="${u.id}" style="font-size:0.78rem;padding:0.35rem 0.6rem;flex:1;min-width:100px;">
+              <option value="${u.role}" selected disabled>${u.role.charAt(0).toUpperCase() + u.role.slice(1)}</option>
+              ${roleOptions}
+            </select>
+            <button class="btn-action-edit btn-promote" data-id="${u.id}" title="Apply role change">
+              <i class="fas fa-check"></i> Apply
+            </button>
+            <button class="btn-action-delete btn-delete-user" data-id="${u.id}" data-name="${esc(u.username)}">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  // ── Bind events ────────────────────────────────────────────────────────
+  [tbody, cardGrid].forEach(container => {
+    container.querySelectorAll('.btn-promote').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id  = Number(btn.dataset.id);
+        const sel = container.querySelector(`.role-select[data-id="${id}"]`);
+        const newRole = sel?.value;
+        if (!newRole || newRole === allUsers.find(u => u.id === id)?.role) return;
+
+        const restore = setLoading(btn, '');
+        try {
+          await apiPatch(`/api/users/${id}/role`, { role: newRole });
+          showSuccess(`User role updated to "${newRole}".`);
+          loadUsers();
+        } catch (err) {
+          showError(err.message || 'Failed to update role.');
+        } finally {
+          restore();
+        }
+      });
+    });
+
+    container.querySelectorAll('.btn-delete-user').forEach(btn => {
+      btn.addEventListener('click', () => openDeleteModal(Number(btn.dataset.id), btn.dataset.name));
+    });
+  });
+}
+
+// ── Delete modal ───────────────────────────────────────────────────────────
+const deleteOverlay   = document.getElementById('delete-user-overlay');
+const deleteNameEl    = document.getElementById('delete-user-name');
+const deleteConfirmBtn = document.getElementById('delete-user-confirm');
+const deleteCancelBtn = document.getElementById('delete-user-cancel');
+const deleteCloseBtn  = document.getElementById('delete-user-close');
+const deleteErrBanner = document.getElementById('delete-user-error');
+let deletingUserId = null;
+
+function openDeleteModal(id, name) {
+  deletingUserId = id;
+  deleteNameEl.textContent = name;
+  deleteErrBanner.hidden = true;
+  deleteOverlay.classList.add('open');
+}
+
+function closeDeleteModal() {
+  deleteOverlay.classList.remove('open');
+  deletingUserId = null;
+}
+
+deleteCancelBtn.addEventListener('click', closeDeleteModal);
+deleteCloseBtn.addEventListener('click', closeDeleteModal);
+deleteOverlay.addEventListener('click', e => { if (e.target === deleteOverlay) closeDeleteModal(); });
+
+deleteConfirmBtn.addEventListener('click', async () => {
+  if (!deletingUserId) return;
+  deleteErrBanner.hidden = true;
+  const restore = setLoading(deleteConfirmBtn, 'Deleting…');
+  try {
+    await apiDelete(`/api/users/${deletingUserId}`);
+    closeDeleteModal();
+    showSuccess('User deleted successfully.');
+    loadUsers();
+  } catch (err) {
+    deleteErrBanner.textContent = err.message || 'Failed to delete user.';
+    deleteErrBanner.hidden = false;
+  } finally {
+    restore();
+  }
+});
+
+// ── Init ───────────────────────────────────────────────────────────────────
+loadUsers();
+</script>
+</body>
+</html>

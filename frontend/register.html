@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Create Account — SchoolStock</title>
+  <meta name="description" content="Create a new SchoolStock staff account to manage school inventory." />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body class="auth-page">
+
+  <main class="auth-card" role="main">
+    <div class="auth-logo">
+      <div class="auth-logo-icon" aria-hidden="true">
+        <i class="fas fa-warehouse"></i>
+      </div>
+      <span class="auth-logo-name">SchoolStock</span>
+    </div>
+
+    <h1 class="auth-title">Create account</h1>
+    <p class="auth-subtitle">New accounts are created as <strong>Staff</strong> by default</p>
+
+    <!--
+      ADMIN ACCESS POLICY
+      ───────────────────
+      Self-registration only creates Staff accounts. This is intentional — admin
+      roles are sensitive and should be assigned only by someone with direct
+      database access (the system/master admin).
+
+      To promote a user to admin or clerk, an administrator should run:
+        UPDATE users SET role = 'admin' WHERE username = '<target>';
+        UPDATE users SET role = 'clerk' WHERE username = '<target>';
+
+      There is no self-serve admin registration in this UI by design.
+    -->
+
+    <div id="reg-error"   class="alert-banner alert-banner--error"   hidden role="alert"></div>
+    <div id="reg-success" class="alert-banner alert-banner--success" hidden role="status"></div>
+
+    <form class="auth-form" id="register-form" novalidate>
+      <div class="form-group">
+        <label for="reg-name">Full Name <span class="required">*</span></label>
+        <div class="input-wrapper">
+          <i class="fas fa-id-card input-icon" aria-hidden="true"></i>
+          <input
+            type="text"
+            id="reg-name"
+            name="name"
+            class="form-control"
+            placeholder="Enter your full name"
+            autocomplete="name"
+            required
+            aria-required="true"
+          />
+        </div>
+        <span class="field-error" id="reg-name-error" hidden></span>
+      </div>
+
+      <div class="form-group">
+        <label for="reg-email">Email Address <span class="required">*</span></label>
+        <div class="input-wrapper">
+          <i class="fas fa-envelope input-icon" aria-hidden="true"></i>
+          <input
+            type="email"
+            id="reg-email"
+            name="email"
+            class="form-control"
+            placeholder="Enter your email address"
+            autocomplete="email"
+            required
+            aria-required="true"
+          />
+        </div>
+        <span class="field-error" id="reg-email-error" hidden></span>
+      </div>
+
+      <div class="form-group">
+        <label for="reg-username">Username <span class="required">*</span></label>
+        <div class="input-wrapper">
+          <i class="fas fa-user input-icon" aria-hidden="true"></i>
+          <input
+            type="text"
+            id="reg-username"
+            name="username"
+            class="form-control"
+            placeholder="Choose a username"
+            autocomplete="username"
+            required
+            aria-required="true"
+          />
+        </div>
+        <span class="field-error" id="reg-username-error" hidden></span>
+      </div>
+
+      <div class="form-group">
+        <label for="reg-password">Password <span class="required">*</span></label>
+        <div class="input-wrapper">
+          <i class="fas fa-lock input-icon" aria-hidden="true"></i>
+          <input
+            type="password"
+            id="reg-password"
+            name="password"
+            class="form-control"
+            placeholder="Choose a password (min 6 chars)"
+            autocomplete="new-password"
+            required
+            aria-required="true"
+            minlength="6"
+          />
+        </div>
+        <span class="field-error" id="reg-password-error" hidden></span>
+      </div>
+
+      <!-- Role is NOT user-selectable. All self-registered users are 'staff'.
+           Admin/clerk roles are assigned by the system administrator via DB. -->
+      <input type="hidden" name="role" value="staff" />
+
+      <button type="submit" class="btn btn-primary" id="reg-submit">
+        Create Staff Account
+      </button>
+    </form>
+
+    <!-- Admin access info note -->
+    <div style="
+      margin-top: 1.25rem;
+      padding: 0.75rem 1rem;
+      background: var(--color-info-bg);
+      border-radius: var(--radius-md);
+      font-size: 0.8rem;
+      color: var(--color-info);
+      display: flex;
+      gap: 0.5rem;
+      align-items: flex-start;
+    ">
+      <i class="fas fa-circle-info" aria-hidden="true" style="margin-top:0.1rem; flex-shrink:0;"></i>
+      <span>
+        Need admin access? Contact your system administrator — admin roles are assigned directly by the database admin, not through this form.
+      </span>
+    </div>
+
+    <p class="auth-footer">
+      Already have an account?
+      <a href="index.html" class="auth-link">Sign in</a>
+    </p>
+  </main>
+
+  <script type="module">
+    import { apiPost } from './js/api.js';
+    import { getToken } from './js/auth.js';
+
+    if (getToken()) {
+      window.location.href = '/dashboard.html';
+    }
+
+    const form       = document.getElementById('register-form');
+    const errBox     = document.getElementById('reg-error');
+    const successBox = document.getElementById('reg-success');
+    const submitBtn  = document.getElementById('reg-submit');
+
+    function showError(msg) {
+      errBox.textContent = msg;
+      errBox.hidden = false;
+      successBox.hidden = true;
+    }
+
+    function showSuccess(msg) {
+      successBox.textContent = msg;
+      successBox.hidden = false;
+      errBox.hidden = true;
+    }
+
+    function setFieldError(fieldId, msg) {
+      const errEl = document.getElementById(fieldId + '-error');
+      const input = document.getElementById(fieldId);
+      if (!errEl || !input) return;
+      if (msg) {
+        errEl.textContent = msg;
+        errEl.hidden = false;
+        input.classList.add('error');
+      } else {
+        errEl.hidden = true;
+        input.classList.remove('error');
+      }
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errBox.hidden = true;
+      successBox.hidden = true;
+      setFieldError('reg-name', '');
+      setFieldError('reg-email', '');
+      setFieldError('reg-username', '');
+      setFieldError('reg-password', '');
+
+      const name = form.name.value.trim();
+      const email = form.email.value.trim();
+      const username = form.username.value.trim();
+      const password = form.password.value;
+      // Role is always 'staff' from the hidden input — not user-selectable
+      const role = form.role.value;
+
+      let hasError = false;
+      if (!name) {
+        setFieldError('reg-name', 'Full name is required.');
+        hasError = true;
+      }
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        setFieldError('reg-email', 'Valid email address is required.');
+        hasError = true;
+      }
+      if (!username) {
+        setFieldError('reg-username', 'Username is required.');
+        hasError = true;
+      }
+      if (!password || password.length < 6) {
+        setFieldError('reg-password', 'Password must be at least 6 characters.');
+        hasError = true;
+      }
+      if (hasError) return;
+
+      const original = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating…';
+
+      try {
+        await apiPost('/api/auth/register', { name, email, username, password, role }, false);
+        showSuccess('Account created! Redirecting to sign in…');
+        setTimeout(() => { window.location.href = '/index.html'; }, 1800);
+      } catch (err) {
+        showError(err.message || 'Registration failed. Please try again.');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = original;
+      }
+    });
+  </script>
+</body>
+</html>

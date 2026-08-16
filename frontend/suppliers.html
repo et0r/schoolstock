@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Suppliers — SchoolStock</title>
+  <meta name="description" content="Manage suppliers for school inventory items." />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/pages.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body>
+  <div class="app-layout">
+    <div id="sidebar-root"></div>
+
+    <div class="main-content">
+      <header class="page-header">
+        <h1 class="page-title"><i class="fas fa-truck" aria-hidden="true"></i> Suppliers</h1>
+        <button class="btn btn-primary" id="btn-add-supplier">
+          <i class="fas fa-plus" aria-hidden="true"></i> Add Supplier
+        </button>
+      </header>
+
+      <div class="page-body">
+        <div id="suppliers-error"   class="alert-banner alert-banner--error"   hidden role="alert"></div>
+        <div id="suppliers-success" class="alert-banner alert-banner--success" hidden role="status"></div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title"><i class="fas fa-address-book" aria-hidden="true"></i> Supplier Directory</span>
+            <span id="suppliers-count" class="text-muted" style="font-size:0.82rem;"></span>
+          </div>
+          <div class="table-wrapper">
+            <table id="suppliers-table" aria-label="Suppliers table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Name</th>
+                  <th>Contact Person</th>
+                  <th>Email</th>
+                  <th>Products Supplied</th>
+                </tr>
+              </thead>
+              <tbody id="suppliers-tbody">
+                <tr><td colspan="5">
+                  <div class="spinner-wrapper"><div class="spinner"></div><p class="spinner-text">Loading suppliers…</p></div>
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Supplier Modal -->
+  <div class="modal-overlay" id="supplier-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="supplier-modal-title">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title" id="supplier-modal-title">Add Supplier</span>
+        <button class="modal-close" id="supplier-modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="supplier-modal-error" class="alert-banner alert-banner--error" hidden role="alert"></div>
+        <form id="supplier-form" novalidate>
+          <div style="display:flex; flex-direction:column; gap:1rem;">
+            <div class="form-group">
+              <label for="supplier-name">Supplier Name <span class="required">*</span></label>
+              <input type="text" id="supplier-name" class="form-control" placeholder="e.g. ABC Office Supplies" required />
+              <span class="field-error" id="err-supplier-name" hidden></span>
+            </div>
+            <div class="form-group">
+              <label for="supplier-contact">Contact Person</label>
+              <input type="text" id="supplier-contact" class="form-control" placeholder="e.g. Juan dela Cruz" />
+            </div>
+            <div class="form-group">
+              <label for="supplier-email">Email</label>
+              <input type="email" id="supplier-email" class="form-control" placeholder="e.g. supplier@example.com" />
+              <span class="field-error" id="err-supplier-email" hidden></span>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="supplier-cancel-btn">Cancel</button>
+        <button class="btn btn-primary"   id="supplier-save-btn">Add Supplier</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/suppliers.js"></script>
+</body>
+</html>

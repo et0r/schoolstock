@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign In — SchoolStock</title>
+  <meta name="description" content="Sign in to SchoolStock, your school inventory management system." />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body class="auth-page">
+
+  <main class="auth-card" role="main">
+    <div class="auth-logo">
+      <div class="auth-logo-icon" aria-hidden="true">
+        <i class="fas fa-warehouse"></i>
+      </div>
+      <span class="auth-logo-name">SchoolStock</span>
+    </div>
+
+    <h1 class="auth-title">Welcome back</h1>
+    <p class="auth-subtitle">Sign in to manage your inventory</p>
+
+    <div id="login-error" class="alert-banner alert-banner--error" hidden role="alert"></div>
+
+    <form class="auth-form" id="login-form" novalidate>
+      <div class="form-group">
+        <label for="login-username">Username</label>
+        <div class="input-wrapper">
+          <i class="fas fa-user input-icon" aria-hidden="true"></i>
+          <input
+            type="text"
+            id="login-username"
+            name="username"
+            class="form-control"
+            placeholder="Enter your username"
+            autocomplete="username"
+            required
+            aria-required="true"
+          />
+        </div>
+        <span class="field-error" id="login-username-error" hidden></span>
+      </div>
+
+      <div class="form-group">
+        <label for="login-password">Password</label>
+        <div class="input-wrapper">
+          <i class="fas fa-lock input-icon" aria-hidden="true"></i>
+          <input
+            type="password"
+            id="login-password"
+            name="password"
+            class="form-control"
+            placeholder="Enter your password"
+            autocomplete="current-password"
+            required
+            aria-required="true"
+          />
+        </div>
+        <span class="field-error" id="login-password-error" hidden></span>
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="login-submit">
+        Sign In
+      </button>
+    </form>
+
+    <p class="auth-footer">
+      Don't have an account?
+      <a href="register.html" class="auth-link">Create one</a>
+    </p>
+  </main>
+
+  <script type="module">
+    import { API_BASE, TOKEN_KEY, USER_KEY } from './js/config.js';
+    import { apiPost } from './js/api.js';
+    import { setSession, getToken } from './js/auth.js';
+
+    // If already logged in, go straight to dashboard
+    if (getToken()) {
+      window.location.href = '/dashboard.html';
+    }
+
+    const form    = document.getElementById('login-form');
+    const errBox  = document.getElementById('login-error');
+    const submitBtn = document.getElementById('login-submit');
+
+    function showError(msg) {
+      errBox.textContent = msg;
+      errBox.hidden = false;
+    }
+
+    function hideError() {
+      errBox.hidden = true;
+    }
+
+    function setFieldError(fieldId, msg) {
+      const el = document.getElementById(fieldId);
+      if (!el) return;
+      if (msg) {
+        el.textContent = msg;
+        el.hidden = false;
+        document.getElementById(fieldId.replace('-error', '')).classList.add('error');
+      } else {
+        el.hidden = true;
+        document.getElementById(fieldId.replace('-error', '')).classList.remove('error');
+      }
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideError();
+      setFieldError('login-username-error', '');
+      setFieldError('login-password-error', '');
+
+      const username = form.username.value.trim();
+      const password = form.password.value;
+
+      // Client-side validation
+      let hasError = false;
+      if (!username) {
+        setFieldError('login-username-error', 'Username is required.');
+        hasError = true;
+      }
+      if (!password) {
+        setFieldError('login-password-error', 'Password is required.');
+        hasError = true;
+      }
+      if (hasError) return;
+
+      // Submit
+      const original = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in…';
+
+      try {
+        const data = await apiPost('/api/auth/login', { username, password }, false);
+        setSession(data.token, data.user);
+        window.location.href = '/dashboard.html';
+      } catch (err) {
+        showError(err.message || 'Login failed. Please try again.');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = original;
+      }
+    });
+  </script>
+</body>
+</html>

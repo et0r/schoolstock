@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stock Movements — SchoolStock</title>
+  <meta name="description" content="Record and view stock movements — track items received and issued." />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/pages.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body>
+  <div class="app-layout">
+    <div id="sidebar-root"></div>
+
+    <div class="main-content">
+      <header class="page-header">
+        <h1 class="page-title"><i class="fas fa-right-left" aria-hidden="true"></i> Stock Movements</h1>
+        <button class="btn btn-primary" id="btn-record-movement">
+          <i class="fas fa-plus" aria-hidden="true"></i> Record Movement
+        </button>
+      </header>
+
+      <div class="page-body">
+        <div id="movements-error"   class="alert-banner alert-banner--error"   hidden role="alert"></div>
+        <div id="movements-success" class="alert-banner alert-banner--success" hidden role="status"></div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title"><i class="fas fa-list" aria-hidden="true"></i> Transaction History</span>
+            <span id="movements-count" class="text-muted" style="font-size:0.82rem;"></span>
+          </div>
+          <div class="table-wrapper">
+            <table id="movements-table" aria-label="Stock movements table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Type</th>
+                  <th>Qty Changed</th>
+                  <th>Date &amp; Time</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody id="movements-tbody">
+                <tr><td colspan="5">
+                  <div class="spinner-wrapper"><div class="spinner"></div><p class="spinner-text">Loading movements…</p></div>
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Record Movement Modal -->
+  <div class="modal-overlay" id="movement-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="movement-modal-title">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title" id="movement-modal-title">Record Stock Movement</span>
+        <button class="modal-close" id="movement-modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="movement-modal-error" class="alert-banner alert-banner--error" hidden role="alert"></div>
+        <form id="movement-form" novalidate>
+          <div style="display:flex; flex-direction:column; gap:1rem;">
+            <div class="form-group">
+              <label for="movement-item">Product <span class="required">*</span></label>
+              <select id="movement-item" class="form-control" required>
+                <option value="">Select a product…</option>
+              </select>
+              <span class="field-error" id="err-movement-item" hidden></span>
+            </div>
+            <div class="form-group">
+              <label for="movement-type">Movement Type <span class="required">*</span></label>
+              <select id="movement-type" class="form-control" required>
+                <option value="">Select type…</option>
+                <option value="in">Stock In (received / returned)</option>
+                <option value="out">Stock Out (issued / removed)</option>
+              </select>
+              <span class="field-error" id="err-movement-type" hidden></span>
+            </div>
+            <div class="form-group">
+              <label for="movement-qty">Quantity <span class="required">*</span></label>
+              <input type="number" id="movement-qty" class="form-control" min="1" step="1" placeholder="e.g. 10" required />
+              <span class="field-error" id="err-movement-qty" hidden></span>
+            </div>
+            <div class="form-group">
+              <label for="movement-notes">Notes</label>
+              <textarea id="movement-notes" class="form-control" rows="3" placeholder="Optional notes about this movement…"></textarea>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="movement-cancel-btn">Cancel</button>
+        <button class="btn btn-primary"   id="movement-save-btn">Record</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/movements.js"></script>
+</body>
+</html>

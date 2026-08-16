@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — SchoolStock</title>
+  <meta name="description" content="SchoolStock dashboard — overview of inventory stats, low stock alerts, and recent activity." />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/pages.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body>
+  <div class="app-layout">
+    <div id="sidebar-root"></div>
+
+    <div class="main-content">
+      <header class="page-header">
+        <h1 class="page-title"><i class="fas fa-gauge-high" aria-hidden="true"></i> Dashboard</h1>
+        <span id="dashboard-date" class="text-muted" style="font-size:0.85rem;"></span>
+      </header>
+
+      <div class="page-body">
+        <!-- Stat cards -->
+        <div class="stat-grid" id="stat-grid" aria-label="Inventory statistics">
+          <div class="stat-card">
+            <div class="stat-icon accent"><i class="fas fa-boxes-stacked" aria-hidden="true"></i></div>
+            <div class="stat-info">
+              <p class="stat-label">Total Products</p>
+              <p class="stat-value" id="stat-total">—</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon success"><i class="fas fa-circle-check" aria-hidden="true"></i></div>
+            <div class="stat-info">
+              <p class="stat-label">In Stock</p>
+              <p class="stat-value" id="stat-in-stock">—</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon warning"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i></div>
+            <div class="stat-info">
+              <p class="stat-label">Low Stock</p>
+              <p class="stat-value" id="stat-low-stock">—</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon danger"><i class="fas fa-circle-xmark" aria-hidden="true"></i></div>
+            <div class="stat-info">
+              <p class="stat-label">Out of Stock</p>
+              <p class="stat-value" id="stat-out-of-stock">—</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom row: low stock + activity -->
+        <div class="dashboard-grid">
+
+          <!-- Low stock widget -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> Low Stock Items</span>
+              <a href="alerts.html" class="btn btn-ghost" style="font-size:0.8rem; padding:0.3rem 0.75rem;">
+                View All <i class="fas fa-arrow-right" aria-hidden="true"></i>
+              </a>
+            </div>
+            <div class="card-body" id="low-stock-body">
+              <div class="spinner-wrapper"><div class="spinner"></div></div>
+            </div>
+          </div>
+
+          <!-- Recent activity -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i> Recent Activity</span>
+              <a href="movements.html" class="btn btn-ghost" style="font-size:0.8rem; padding:0.3rem 0.75rem;">
+                View All <i class="fas fa-arrow-right" aria-hidden="true"></i>
+              </a>
+            </div>
+            <div class="card-body" id="activity-body">
+              <div class="spinner-wrapper"><div class="spinner"></div></div>
+            </div>
+          </div>
+
+        </div><!-- /dashboard-grid -->
+
+        <!-- Global error banner for dashboard page -->
+        <div id="dashboard-error" class="alert-banner alert-banner--error" hidden role="alert" style="margin-top:1rem;"></div>
+      </div><!-- /page-body -->
+    </div><!-- /main-content -->
+  </div><!-- /app-layout -->
+
+  <script type="module" src="js/dashboard.js"></script>
+</body>
+</html>

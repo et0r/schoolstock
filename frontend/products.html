@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Products — SchoolStock</title>
+  <meta name="description" content="Manage school inventory products — add, edit, filter, and track stock levels." />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/pages.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body>
+  <div class="app-layout">
+    <div id="sidebar-root"></div>
+
+    <div class="main-content">
+      <header class="page-header">
+        <h1 class="page-title"><i class="fas fa-boxes-stacked" aria-hidden="true"></i> Products</h1>
+        <button class="btn btn-primary" id="btn-add-product">
+          <i class="fas fa-plus" aria-hidden="true"></i> Add Product
+        </button>
+      </header>
+
+      <div class="page-body">
+        <div id="products-error" class="alert-banner alert-banner--error" hidden role="alert"></div>
+        <div id="products-success" class="alert-banner alert-banner--success" hidden role="status"></div>
+
+        <div class="card">
+          <!-- Toolbar -->
+          <div class="products-toolbar">
+            <div class="filter-tabs" role="tablist" aria-label="Stock filter">
+              <button class="filter-tab active" data-filter="all"       role="tab" aria-selected="true"  id="tab-all">All</button>
+              <button class="filter-tab"         data-filter="low"       role="tab" aria-selected="false" id="tab-low">Low Stock</button>
+              <button class="filter-tab"         data-filter="out"       role="tab" aria-selected="false" id="tab-out">Out of Stock</button>
+            </div>
+            <div class="search-wrapper">
+              <i class="fas fa-search search-icon" aria-hidden="true"></i>
+              <input
+                type="search"
+                id="product-search"
+                class="form-control"
+                placeholder="Search products…"
+                aria-label="Search products"
+              />
+            </div>
+          </div>
+
+
+          <!-- Table (desktop) -->
+          <div class="table-view table-wrapper">
+            <table id="products-table" aria-label="Products table">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>SKU</th>
+                  <th>Name</th>
+                  <th>Category</th>
+                  <th>Department</th>
+                  <th>Qty</th>
+                  <th>Condition</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="products-tbody">
+                <tr><td colspan="9">
+                  <div class="spinner-wrapper"><div class="spinner"></div><p class="spinner-text">Loading products…</p></div>
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Card grid (mobile — shown automatically via CSS) -->
+          <div class="product-card-grid" id="products-card-grid">
+            <div class="spinner-wrapper"><div class="spinner"></div><p class="spinner-text">Loading products…</p></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Add / Edit Product Modal -->
+  <div class="modal-overlay" id="product-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="product-modal-title">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title" id="product-modal-title">
+          <i class="fas fa-box-open" aria-hidden="true"></i> Add Product
+        </span>
+        <button class="modal-close" id="product-modal-close" aria-label="Close">
+          <i class="fas fa-xmark"></i>
+        </button>
+
+      </div>
+      <div class="modal-body">
+        <div id="product-modal-error" class="alert-banner alert-banner--error" hidden role="alert"></div>
+        <form id="product-form" novalidate>
+          <input type="hidden" id="product-id" />
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="product-name">Name <span class="required">*</span></label>
+              <input type="text" id="product-name" class="form-control" placeholder="e.g. A4 Bond Paper" required />
+              <span class="field-error" id="err-product-name" hidden></span>
+            </div>
+            <div class="form-group">
+              <label for="product-sku">SKU</label>
+              <input type="text" id="product-sku" class="form-control" placeholder="e.g. SKU-001 (optional)" />
+            </div>
+            <div class="form-group">
+              <label for="product-category">Category <span class="required">*</span></label>
+              <select id="product-category" class="form-control" required>
+                <option value="">Loading…</option>
+              </select>
+              <span class="field-error" id="err-product-category" hidden></span>
+            </div>
+            <div class="form-group">
+              <label for="product-department">Department <span class="required">*</span></label>
+              <select id="product-department" class="form-control" required>
+                <option value="">Loading…</option>
+              </select>
+              <span class="field-error" id="err-product-department" hidden></span>
+            </div>
+            <div class="form-group">
+              <label for="product-supplier">Supplier</label>
+              <select id="product-supplier" class="form-control">
+                <option value="">Loading…</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="product-condition">Condition <span class="required">*</span></label>
+              <select id="product-condition" class="form-control" required>
+                <option value="">Select condition</option>
+                <option value="Good">Good</option>
+                <option value="Fair">Fair</option>
+                <option value="Poor">Poor</option>
+                <option value="Damaged">Damaged</option>
+              </select>
+              <span class="field-error" id="err-product-condition" hidden></span>
+            </div>
+            <div class="form-group">
+              <label for="product-unit">Unit <span class="required">*</span></label>
+              <input type="text" id="product-unit" class="form-control" placeholder="e.g. pcs, box, ream" required />
+              <span class="field-error" id="err-product-unit" hidden></span>
+            </div>
+            <div class="form-group">
+              <label for="product-quantity">Quantity <span class="required">*</span></label>
+              <input type="number" id="product-quantity" class="form-control" min="0" step="1" placeholder="0" required />
+              <span class="field-error" id="err-product-quantity" hidden></span>
+            </div>
+
+            <div class="form-group form-group--full">
+              <label for="product-image">Product Image <span class="text-muted" style="font-weight:400;">(optional, uploads to S3)</span></label>
+              <input type="file" id="product-image" class="form-control" accept="image/*" />
+              <img id="product-image-preview" class="image-preview" src="" alt="Image preview" hidden />
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="product-cancel-btn">Cancel</button>
+        <button class="btn btn-primary"   id="product-save-btn">Save Product</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Delete Modal -->
+  <div class="modal-overlay" id="delete-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
+    <div class="modal" style="max-width:380px;">
+      <div class="modal-header">
+        <span class="modal-title" id="delete-modal-title">Delete Product</span>
+        <button class="modal-close" id="delete-modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to permanently delete <strong id="delete-item-name"></strong>? This action cannot be undone.</p>
+        <div id="delete-modal-error" class="alert-banner alert-banner--error" hidden role="alert" style="margin-top:1rem;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="delete-cancel-btn">Cancel</button>
+        <button class="btn btn-danger"    id="delete-confirm-btn">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/products.js"></script>
+</body>
+</html>

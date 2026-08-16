@@ -5,11 +5,11 @@ const jwt = require('jsonwebtoken');
 // 1. User Registration
 exports.register = async (req, res) => {
     try {
-        const { username, password, role } = req.body;
+        const { name, email, username, password, role } = req.body;
 
         // Basic validation
-        if (!username || !password) {
-            return res.status(400).json({ error: 'Username and password are required.' });
+        if (!name || !email || !username || !password) {
+            return res.status(400).json({ error: 'Name, email, username, and password are required.' });
         }
 
         // Hash the password
@@ -22,8 +22,8 @@ exports.register = async (req, res) => {
 
         // Insert into the database
         const [result] = await db.execute(
-            'INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)',
-            [username, hashedPassword, userRole]
+            'INSERT INTO users (name, email, username, password_hash, role) VALUES (?, ?, ?, ?, ?)',
+            [name, email, username, hashedPassword, userRole]
         );
 
         res.status(201).json({ 
