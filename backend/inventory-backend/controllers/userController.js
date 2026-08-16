@@ -8,7 +8,7 @@ const db = require('../config/db');
 exports.getAllUsers = async (req, res) => {
     try {
         const [users] = await db.execute(
-            'SELECT id, username, role, created_at FROM users ORDER BY id ASC'
+            'SELECT id, name, email, username, role, created_at FROM users ORDER BY id ASC'
         );
         res.status(200).json({ count: users.length, users });
     } catch (error) {
