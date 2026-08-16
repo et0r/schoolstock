@@ -31,6 +31,9 @@ const { getAllUsers, updateUserRole, deleteUser } =
 const { getAllSuppliers, getSupplierById, createSupplier, updateSupplier, deleteSupplier } =
     require("./inventory-backend/controllers/supplierController");
 
+const { getAllTransactions, recordTransaction } =
+    require("./inventory-backend/controllers/transactionController");
+
 // ── Auth routes ───────────────────────────────────────────────────────────────
 app.post("/api/auth/register", register);
 app.post("/api/auth/login",    login);
@@ -45,6 +48,10 @@ app.delete("/api/items/:id", authenticate, adminOnly, deleteItem);
 // ── Lookup routes (categories / departments) ──────────────────────────────────
 app.get("/api/categories",  authenticate, getCategories);   // NEW
 app.get("/api/departments", authenticate, getDepartments);  // NEW
+
+// ── Stock Transaction routes ──────────────────────────────────────────────────
+app.get( "/api/stock-transactions", authenticate, getAllTransactions);
+app.post("/api/stock-transactions", authenticate, recordTransaction);
 
 // ── Supplier routes ──────────────────────────────────────────────────────────
 app.get(   "/api/suppliers",     authenticate, getAllSuppliers);
