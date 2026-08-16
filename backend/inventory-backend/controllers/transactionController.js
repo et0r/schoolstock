@@ -31,8 +31,9 @@ exports.recordTransaction = async (req, res) => {
         );
 
         // 2. Update item quantity
-        // If type is 'in', add. If 'out', subtract.
-        const modifier = type === 'in' ? '+' : '-';
+        // If type is 'in', 'added', or 'returned', add. If 'out', 'issued', or 'removed', subtract.
+        const isIn = type === 'in' || type === 'added' || type === 'returned';
+        const modifier = isIn ? '+' : '-';
         await connection.query(
             `UPDATE items SET quantity = quantity ${modifier} ? WHERE id = ?`,
             [quantity_changed, item_id]
