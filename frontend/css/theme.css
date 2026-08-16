@@ -100,7 +100,7 @@ body {
   background: var(--color-bg);
   color: var(--color-text);
   line-height: 1.6;
-  min-height: 100vh;
+  min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -113,13 +113,13 @@ img { max-width: 100%; display: block; }
 /* ── App Layout ──────────────────────────────────────────── */
 .app-layout {
   display: flex;
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 /* ── Sidebar ─────────────────────────────────────────────── */
 .sidebar {
   width: var(--sidebar-width);
-  min-height: 100vh;
+  height: 100dvh; /* Use dynamic viewport height for mobile browsers */
   background: var(--color-sidebar-grad);
   color: var(--color-sidebar-text);
   display: flex;
