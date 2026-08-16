@@ -12,7 +12,7 @@
 <body>
 <div class="app-layout">
   <!-- Sidebar injected by nav.js -->
-  <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation"></aside>
+  <div id="sidebar-root" class="sidebar"></div>
 
   <div class="main-content">
     <!-- Page header -->
@@ -88,8 +88,8 @@ import { requireAuth, isAdmin, getUser } from './js/auth.js';
 import { initNav }  from './js/nav.js';
 import { esc, setLoading } from './js/products.js'; // reuse helpers
 
-requireAuth();
-initNav('products'); // highlight Inventory in sidebar
+const user = requireAuth();
+initNav(user);
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function esc(str) {

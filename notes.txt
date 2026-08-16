@@ -7,6 +7,8 @@ or just suggest a good way to implement that
 
 department and category dropdown are not showing 
 
+bug in user page nav
+
 
 
 

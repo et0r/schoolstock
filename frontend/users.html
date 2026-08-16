@@ -11,7 +11,7 @@
 </head>
 <body>
 <div class="app-layout">
-  <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation"></aside>
+  <div id="sidebar-root" class="sidebar"></div>
 
   <div class="main-content">
     <header class="page-header">
@@ -51,7 +51,7 @@
             <thead>
               <tr>
                 <th>#</th>
-                <th>Username</th>
+                <th>User Details</th>
                 <th>Role</th>
                 <th>Joined</th>
                 <th>Actions</th>
@@ -104,13 +104,13 @@ import { apiGet, apiPatch, apiDelete } from './js/api.js';
 import { requireAuth, isAdmin, getUser } from './js/auth.js';
 import { initNav } from './js/nav.js';
 
-requireAuth();
+const me = requireAuth();
 // Only admins can see this page
 if (!isAdmin()) {
   window.location.href = 'dashboard.html';
 }
 
-initNav('users');
+initNav(me);
 
 const tbody      = document.getElementById('users-tbody');
 const cardGrid   = document.getElementById('users-card-grid');
@@ -118,7 +118,6 @@ const errBanner  = document.getElementById('users-error');
 const okBanner   = document.getElementById('users-success');
 const countEl    = document.getElementById('users-count');
 
-const me = getUser(); // current logged-in user
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function esc(str) {
@@ -184,16 +183,28 @@ function renderUsers() {
       .map(r => `<option value="${r}">${r.charAt(0).toUpperCase() + r.slice(1)}</option>`)
       .join('');
 
+    const displayName = u.name || u.username || 'Unknown';
+    const displayUsername = u.username || 'No username';
+    const avatar = displayName.slice(0, 2).toUpperCase();
+
     return `
       <tr>
         <td class="td-muted" style="font-size:0.78rem;">${u.id}</td>
         <td>
-          <div style="display:flex;align-items:center;gap:0.6rem;">
-            <div style="width:2rem;height:2rem;border-radius:50%;background:var(--gradient-accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;flex-shrink:0;">
-              ${esc(u.username.slice(0,2).toUpperCase())}
+          <div style="display:flex;align-items:center;gap:0.75rem;">
+            <div style="width:2.2rem;height:2.2rem;border-radius:50%;background:var(--gradient-accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0;">
+              ${esc(avatar)}
             </div>
-            <span class="fw-600">${esc(u.username)}</span>
-            ${isSelf ? '<span class="badge badge-accent" style="font-size:0.62rem;">You</span>' : ''}
+            <div>
+              <div style="display:flex;align-items:center;gap:0.5rem;">
+                <span class="fw-600">${esc(displayName)}</span>
+                ${isSelf ? '<span class="badge badge-accent" style="font-size:0.62rem;">You</span>' : ''}
+              </div>
+              <div style="font-size:0.75rem;color:var(--color-text-muted);display:flex;gap:0.5rem;">
+                <span>@${esc(displayUsername)}</span>
+                ${u.email ? `<span>&bull;</span><span>${esc(u.email)}</span>` : ''}
+              </div>
+            </div>
           </div>
         </td>
         <td>${roleBadge(u.role)}</td>
@@ -225,15 +236,22 @@ function renderUsers() {
       .map(r => `<option value="${r}">${r.charAt(0).toUpperCase() + r.slice(1)}</option>`)
       .join('');
 
+    const displayName = u.name || u.username || 'Unknown';
+    const displayUsername = u.username || 'No username';
+    const avatar = displayName.slice(0, 2).toUpperCase();
+
     return `
       <div class="product-card">
         <div style="width:3rem;height:3rem;border-radius:50%;background:var(--gradient-accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:0.85rem;font-weight:700;flex-shrink:0;">
-          ${esc(u.username.slice(0,2).toUpperCase())}
+          ${esc(avatar)}
         </div>
         <div class="product-card-body">
           <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
-            <p class="product-card-name">${esc(u.username)}</p>
+            <p class="product-card-name">${esc(displayName)}</p>
             ${isSelf ? '<span class="badge badge-accent" style="font-size:0.62rem;">You</span>' : ''}
+          </div>
+          <div style="font-size:0.8rem;color:var(--color-text-muted);margin-bottom:0.4rem;">
+            @${esc(displayUsername)} ${u.email ? `<br>${esc(u.email)}` : ''}
           </div>
           <div class="product-card-meta">
             <span>${roleBadge(u.role)}</span>

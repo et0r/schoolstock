@@ -84,8 +84,7 @@ function buildSidebar(user, alertCount) {
                   : 'Staff';
 
   return `
-    <aside class="sidebar" id="sidebar" aria-label="Main navigation">
-      <div class="sidebar-header">
+    <div class="sidebar-header">
         <div class="sidebar-logo">
           <i class="fas fa-warehouse"></i>
           <span>SchoolStock</span>
@@ -110,21 +109,20 @@ function buildSidebar(user, alertCount) {
             <i class="fas fa-right-from-bracket"></i>
           </button>
         </div>
-      </div>
-    </aside>`;
+      </div>`;
 }
 
 // ─── Mobile Nav helpers ───────────────────────────────────────────────────────
 
 function openSidebar() {
-  document.getElementById('sidebar')?.classList.add('sidebar-open');
+  document.getElementById('sidebar-root')?.classList.add('sidebar-open');
   document.getElementById('mobile-overlay')?.classList.add('overlay-open');
   document.getElementById('mobile-menu-btn')?.setAttribute('aria-expanded', 'true');
   document.body.classList.add('nav-open');
 }
 
 function closeSidebar() {
-  document.getElementById('sidebar')?.classList.remove('sidebar-open');
+  document.getElementById('sidebar-root')?.classList.remove('sidebar-open');
   document.getElementById('mobile-overlay')?.classList.remove('overlay-open');
   document.getElementById('mobile-menu-btn')?.setAttribute('aria-expanded', 'false');
   document.body.classList.remove('nav-open');
@@ -154,7 +152,7 @@ function injectMobileElements() {
       btn.className = 'mobile-menu-btn';
       btn.setAttribute('aria-label', 'Open navigation menu');
       btn.setAttribute('aria-expanded', 'false');
-      btn.setAttribute('aria-controls', 'sidebar');
+      btn.setAttribute('aria-controls', 'sidebar-root');
       btn.innerHTML = '<i class="fas fa-bars" aria-hidden="true"></i>';
       btn.addEventListener('click', openSidebar);
       pageHeader.insertBefore(btn, pageHeader.firstChild);
