@@ -10,7 +10,7 @@
 
 import { requireAuth, isAdmin } from './auth.js';
 import { apiGet, apiPost, apiPut, apiDelete } from './api.js';
-import { initNav, esc, setLoading } from './nav.js';
+import { initNav, esc, setLoading, showBanner, hideBanner } from './nav.js';
 
 // ── Guard ─────────────────────────────────────────────────────────────────────
 const user = requireAuth();
@@ -27,6 +27,13 @@ const cardGrid       = document.getElementById('suppliers-card-grid');
 const countEl        = document.getElementById('suppliers-count');
 const errorBanner    = document.getElementById('suppliers-error');
 const successBanner  = document.getElementById('suppliers-success');
+
+function showError(msg) {
+  showBanner(document.querySelector('.page-header'), msg, 'error');
+}
+function showSuccess(msg) {
+  showBanner(document.querySelector('.page-header'), msg, 'success');
+}
 
 const modalOverlay   = document.getElementById('supplier-modal-overlay');
 const modalTitle     = document.getElementById('supplier-modal-title');
