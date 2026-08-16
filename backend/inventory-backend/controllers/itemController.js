@@ -53,8 +53,16 @@ exports.createItem = async (req, res) => {
 
 exports.getAllItems = async (req, res) => {
     try {
-        // Fetch all items, ordering by the newest first
-        const [items] = await db.execute('SELECT * FROM items ORDER BY created_at DESC');
+        // Fetch all items, ordering by the newest first, joining category and department names
+        const [items] = await db.execute(`
+            SELECT i.*, 
+                   c.name AS category, 
+                   d.name AS department
+            FROM items i
+            LEFT JOIN categories c ON i.category_id = c.id
+            LEFT JOIN departments d ON i.department_id = d.id
+            ORDER BY i.created_at DESC
+        `);
 
         res.status(200).json({
             count: items.length,
