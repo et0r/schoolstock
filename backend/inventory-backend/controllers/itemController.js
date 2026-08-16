@@ -8,9 +8,7 @@ exports.createItem = async (req, res) => {
 
         // These are NOT NULL foreign keys in the database — required on create
         if (!name || !category_id || !department_id || !condition || !unit) {
-            return res.status(400).json({
-                error: 'name, category_id, department_id, condition, and unit are required.'
-            });
+            return res.status(400).json({ error: 'Please fill in all required fields.' });
         }
 
         let imageUrl = null;
@@ -42,10 +40,10 @@ exports.createItem = async (req, res) => {
     } catch (error) {
         console.error(error);
         if (error.code === 'ER_DUP_ENTRY') {
-            return res.status(400).json({ error: 'SKU already exists.' });
+            return res.status(400).json({ error: 'This SKU is already in use.' });
         }
         if (error.code === 'ER_NO_REFERENCED_ROW_2') {
-            return res.status(400).json({ error: 'category_id or department_id does not exist.' });
+            return res.status(400).json({ error: 'Invalid category or department selected.' });
         }
         res.status(500).json({ error: 'Failed to create item' });
     }
@@ -81,9 +79,7 @@ exports.updateItem = async (req, res) => {
         const { name, sku, category_id, department_id, quantity, condition, unit } = req.body;
 
         if (!name || !category_id || !department_id || !condition || !unit) {
-            return res.status(400).json({
-                error: 'name, category_id, department_id, condition, and unit are required.'
-            });
+            return res.status(400).json({ error: 'Please fill in all required fields.' });
         }
 
         const [result] = await db.execute(
@@ -100,10 +96,10 @@ exports.updateItem = async (req, res) => {
         console.error('Error updating item:', error);
 
         if (error.code === 'ER_DUP_ENTRY') {
-            return res.status(400).json({ error: 'SKU already exists on another item.' });
+            return res.status(400).json({ error: 'This SKU is already in use.' });
         }
         if (error.code === 'ER_NO_REFERENCED_ROW_2') {
-            return res.status(400).json({ error: 'category_id or department_id does not exist.' });
+            return res.status(400).json({ error: 'Invalid category or department selected.' });
         }
         res.status(500).json({ error: 'Failed to update item' });
     }

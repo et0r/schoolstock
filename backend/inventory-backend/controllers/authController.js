@@ -9,7 +9,7 @@ exports.register = async (req, res) => {
 
         // Basic validation
         if (!name || !email || !username || !password) {
-            return res.status(400).json({ error: 'Name, email, username, and password are required.' });
+            return res.status(400).json({ error: 'Please fill in all required fields.' });
         }
 
         // Hash the password
