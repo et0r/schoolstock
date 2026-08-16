@@ -132,7 +132,7 @@ function renderTable() {
         <td>${statusBadge(item)}</td>
         <td>
           <div class="td-actions">
-            <a href="item-detail.html?id=${item.id}"
+            <a href="item-detail?id=${item.id}"
               class="btn-action-edit" title="View details"
               aria-label="View details for ${esc(item.name)}"
               style="text-decoration:none;">
@@ -168,27 +168,34 @@ function renderTable() {
 
       return `
         <div class="product-card">
-          <div class="product-card-image">${imgHtml}</div>
-          <div class="product-card-body">
-            <p class="product-card-name">${esc(item.name)}</p>
-            ${item.sku ? `<p style="font-size:0.72rem;color:var(--color-text-muted);margin-top:0.1rem;">${esc(item.sku)}</p>` : ''}
-            <div class="product-card-meta">${metaParts}</div>
-            <div class="product-card-footer">
-              <div style="display:flex;align-items:center;gap:0.5rem;">
-                ${statusBadge(item)}
-                <span class="qty-tag ${s}" style="font-size:0.78rem;">${esc(item.quantity)} ${esc(item.unit || '')}</span>
-              </div>
-              <div class="product-card-actions">
-                <button class="btn-action-edit btn-edit-item"
-                  data-id="${item.id}" title="Edit" aria-label="Edit ${esc(item.name)}">
-                  <i class="fas fa-pencil"></i>
-                </button>
-                ${isAdmin() ? `<button class="btn-action-delete btn-delete-item"
-                  data-id="${item.id}" data-name="${esc(item.name)}"
-                  title="Delete" aria-label="Delete ${esc(item.name)}">
-                  <i class="fas fa-trash"></i>
-                </button>` : ''}
-              </div>
+          <div class="product-card-header">
+            <div class="product-card-image">${imgHtml}</div>
+            <div class="product-card-info">
+              <div class="product-card-name">${esc(item.name)}</div>
+              ${item.sku ? `<div class="product-card-sku">${esc(item.sku)}</div>` : ''}
+            </div>
+          </div>
+          ${metaParts ? `<div class="product-card-meta">${metaParts}</div>` : ''}
+          <div class="product-card-footer">
+            <div class="product-card-footer-left" style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+              <span class="qty-tag ${s}">${esc(item.quantity)} ${esc(item.unit || '')}</span>
+              ${statusBadge(item)}
+            </div>
+            <div class="product-card-actions">
+              <a href="item-detail?id=${item.id}"
+                class="btn-action-edit" title="View details"
+                style="text-decoration:none;">
+                <i class="fas fa-eye"></i>
+              </a>
+              <button class="btn-action-edit btn-edit-item"
+                data-id="${item.id}" title="Edit" aria-label="Edit ${esc(item.name)}">
+                <i class="fas fa-pencil"></i>
+              </button>
+              ${isAdmin() ? `<button class="btn-action-delete btn-delete-item"
+                data-id="${item.id}" data-name="${esc(item.name)}"
+                title="Delete" aria-label="Delete ${esc(item.name)}">
+                <i class="fas fa-trash"></i>
+              </button>` : ''}
             </div>
           </div>
         </div>`;
@@ -248,6 +255,7 @@ function openAddModal() {
   productTitle.textContent = 'Add Product';
   productSaveBtn.textContent = 'Save Product';
   resetProductForm();
+  document.getElementById('product-sku').value = generateNextSKU();
   populateDropdowns();
   openModal(productOverlay);
 }
@@ -372,7 +380,6 @@ async function saveProduct() {
         quantity,
         condition, unit,
       });
-      showBanner(document.getElementById('products-error').parentElement || document.body, 'Product updated successfully.', 'success');
       successBanner.textContent = 'Product updated successfully.';
       successBanner.hidden = false;
       setTimeout(() => { successBanner.hidden = true; }, 4000);
@@ -469,23 +476,9 @@ async function loadLookups() {
     departments = deptData.departments;
   } else {
     departments = DEFAULT_DEPARTMENTS;
-    usingFallback = true;
   }
 
   suppliers = suppData?.suppliers || [];
-
-  if (usingFallback) {
-    // Show a subtle info banner so users know these are defaults
-    const infoBanner = document.getElementById('products-error');
-    if (infoBanner) {
-      infoBanner.className = 'alert-banner alert-banner--info';
-      infoBanner.textContent =
-        'Category / department lists loaded from built-in defaults ' +
-        '(API endpoints not yet available on the server).';
-      infoBanner.hidden = false;
-      setTimeout(() => { infoBanner.hidden = true; }, 6000);
-    }
-  }
 }
 
 async function loadItems() {
@@ -548,6 +541,17 @@ document.getElementById('product-image').addEventListener('change', (e) => {
 // ── Boot ──────────────────────────────────────────────────────────────────────
 async function init() {
   await Promise.all([loadLookups(), loadItems()]);
+}
+
+function generateNextSKU() {
+  let max = 0;
+  allItems.forEach(item => {
+    if (item.sku && item.sku.startsWith('SKU-')) {
+      const num = parseInt(item.sku.replace('SKU-', ''), 10);
+      if (!isNaN(num) && num > max) max = num;
+    }
+  });
+  return `SKU-${String(max + 1).padStart(3, '0')}`;
 }
 
 init();

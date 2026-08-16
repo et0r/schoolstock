@@ -28,13 +28,6 @@ const countEl        = document.getElementById('suppliers-count');
 const errorBanner    = document.getElementById('suppliers-error');
 const successBanner  = document.getElementById('suppliers-success');
 
-function showError(msg) {
-  showBanner(document.querySelector('.page-header'), msg, 'error');
-}
-function showSuccess(msg) {
-  showBanner(document.querySelector('.page-header'), msg, 'success');
-}
-
 const modalOverlay   = document.getElementById('supplier-modal-overlay');
 const modalTitle     = document.getElementById('supplier-modal-title');
 const modalErrBanner = document.getElementById('supplier-modal-error');
@@ -66,16 +59,18 @@ function setFieldError(id, msg) {
 }
 
 function showSuccess(msg) {
+  if (!successBanner) return;
   successBanner.textContent = msg;
   successBanner.hidden = false;
-  errorBanner.hidden = true;
+  if (errorBanner) errorBanner.hidden = true;
   setTimeout(() => successBanner.hidden = true, 4000);
 }
 
 function showError(msg) {
+  if (!errorBanner) return;
   errorBanner.textContent = msg;
   errorBanner.hidden = false;
-  successBanner.hidden = true;
+  if (successBanner) successBanner.hidden = true;
 }
 
 function validate() {
@@ -125,6 +120,7 @@ function renderTable() {
           ${s.email ? `<a href="mailto:${esc(s.email)}" style="color:var(--color-accent);">${esc(s.email)}</a>` : '—'}
         </td>
         <td class="td-muted">${esc(s.phone || '—')}</td>
+        <td class="td-muted">${esc(s.address || '—')}</td>
         <td>
           <span class="supplier-product-count">
             <i class="fas fa-box" aria-hidden="true"></i>
@@ -151,28 +147,32 @@ function renderTable() {
       const pc = countMap[s.id] || 0;
       return `
         <div class="product-card">
-          <div class="product-card-image" style="background:var(--color-accent-soft);color:var(--color-accent);">
-            <i class="fas fa-truck" style="font-size:1.2rem;"></i>
-          </div>
-          <div class="product-card-body">
-            <p class="product-card-name">${esc(s.name)}</p>
-            <div class="product-card-meta">
-              ${s.contact ? `<span><i class="fas fa-user"></i> ${esc(s.contact)}</span>` : ''}
-              ${s.email   ? `<span><i class="fas fa-envelope"></i> ${esc(s.email)}</span>` : ''}
-              ${s.phone   ? `<span><i class="fas fa-phone"></i> ${esc(s.phone)}</span>` : ''}
-              <span><i class="fas fa-box"></i> ${pc} item${pc !== 1 ? 's' : ''}</span>
+          <div class="product-card-header">
+            <div class="product-card-image" style="background:var(--color-accent-soft);color:var(--color-accent);">
+              <i class="fas fa-truck"></i>
             </div>
-            <div class="product-card-footer">
-              <span></span>
-              <div class="product-card-actions">
-                <button class="btn-action-edit btn-edit-supplier" data-id="${s.id}" title="Edit">
-                  <i class="fas fa-pencil"></i>
-                </button>
-                ${isAdmin() ? `<button class="btn-action-delete btn-delete-supplier"
-                  data-id="${s.id}" data-name="${esc(s.name)}" title="Delete">
-                  <i class="fas fa-trash"></i>
-                </button>` : ''}
-              </div>
+            <div class="product-card-info">
+              <div class="product-card-name">${esc(s.name)}</div>
+            </div>
+          </div>
+          <div class="product-card-meta">
+            ${s.contact ? `<span><i class="fas fa-user"></i> ${esc(s.contact)}</span>` : ''}
+            ${s.email   ? `<span><i class="fas fa-envelope"></i> ${esc(s.email)}</span>` : ''}
+            ${s.phone   ? `<span><i class="fas fa-phone"></i> ${esc(s.phone)}</span>` : ''}
+            ${s.address ? `<span><i class="fas fa-map-marker-alt"></i> ${esc(s.address)}</span>` : ''}
+          </div>
+          <div class="product-card-footer">
+            <div class="product-card-footer-left">
+              <span class="qty-tag ok"><i class="fas fa-box" style="font-size:0.7rem;"></i> ${pc} item${pc !== 1 ? 's' : ''}</span>
+            </div>
+            <div class="product-card-actions">
+              <button class="btn-action-edit btn-edit-supplier" data-id="${s.id}" title="Edit">
+                <i class="fas fa-pencil"></i>
+              </button>
+              ${isAdmin() ? `<button class="btn-action-delete btn-delete-supplier"
+                data-id="${s.id}" data-name="${esc(s.name)}" title="Delete">
+                <i class="fas fa-trash"></i>
+              </button>` : ''}
             </div>
           </div>
         </div>`;
@@ -214,8 +214,10 @@ function openEditModal(id) {
   document.getElementById('supplier-name').value    = s.name    || '';
   document.getElementById('supplier-contact').value = s.contact || '';
   document.getElementById('supplier-email').value   = s.email   || '';
-  document.getElementById('supplier-phone').value   = s.phone   || '';
-  document.getElementById('supplier-address').value = s.address || '';
+  
+  if (document.getElementById('supplier-phone')) document.getElementById('supplier-phone').value = s.phone || '';
+  if (document.getElementById('supplier-address')) document.getElementById('supplier-address').value = s.address || '';
+  
   modalErrBanner.hidden = true;
   clearFieldError('supplier-name');
   clearFieldError('supplier-email');
@@ -232,8 +234,8 @@ async function saveSupplier() {
     name:    document.getElementById('supplier-name').value.trim(),
     contact: document.getElementById('supplier-contact').value.trim() || null,
     email:   document.getElementById('supplier-email').value.trim()   || null,
-    phone:   document.getElementById('supplier-phone').value.trim()   || null,
-    address: document.getElementById('supplier-address').value.trim() || null,
+    phone:   document.getElementById('supplier-phone') ? document.getElementById('supplier-phone').value.trim() : null,
+    address: document.getElementById('supplier-address') ? document.getElementById('supplier-address').value.trim() : null,
   };
 
   const restore = setLoading(saveBtn, editingId ? 'Saving…' : 'Adding…');

@@ -144,19 +144,25 @@ function injectMobileElements() {
   }
 
   // Hamburger button in .page-header
-  if (!document.getElementById('mobile-menu-btn')) {
+  let btn = document.getElementById('mobile-menu-btn');
+  if (!btn) {
     const pageHeader = document.querySelector('.page-header');
     if (pageHeader) {
-      const btn = document.createElement('button');
+      btn = document.createElement('button');
       btn.id = 'mobile-menu-btn';
       btn.className = 'mobile-menu-btn';
       btn.setAttribute('aria-label', 'Open navigation menu');
       btn.setAttribute('aria-expanded', 'false');
       btn.setAttribute('aria-controls', 'sidebar-root');
       btn.innerHTML = '<i class="fas fa-bars" aria-hidden="true"></i>';
-      btn.addEventListener('click', openSidebar);
       pageHeader.insertBefore(btn, pageHeader.firstChild);
     }
+  }
+  
+  // Attach listener if it exists and hasn't been attached yet
+  if (btn && !btn.hasAttribute('data-bound')) {
+    btn.addEventListener('click', openSidebar);
+    btn.setAttribute('data-bound', 'true');
   }
 }
 

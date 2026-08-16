@@ -30,15 +30,17 @@
             <span class="card-title"><i class="fas fa-address-book" aria-hidden="true"></i> Supplier Directory</span>
             <span id="suppliers-count" class="text-muted" style="font-size:0.82rem;"></span>
           </div>
-          <div class="table-wrapper">
+          <div class="table-view table-wrapper">
             <table id="suppliers-table" aria-label="Suppliers table">
               <thead>
                 <tr>
-                  <th>#</th>
                   <th>Name</th>
                   <th>Contact Person</th>
                   <th>Email</th>
+                  <th>Phone</th>
+                  <th>Address</th>
                   <th>Products Supplied</th>
+                  <th aria-label="Actions"></th>
                 </tr>
               </thead>
               <tbody id="suppliers-tbody">
@@ -48,6 +50,8 @@
               </tbody>
             </table>
           </div>
+          <!-- Mobile card grid -->
+          <div class="product-card-grid" id="suppliers-card-grid"></div>
         </div>
       </div>
     </div>
@@ -78,12 +82,38 @@
               <input type="email" id="supplier-email" class="form-control" placeholder="e.g. supplier@example.com" />
               <span class="field-error" id="err-supplier-email" hidden></span>
             </div>
+            <div class="form-group">
+              <label for="supplier-phone">Phone Number</label>
+              <input type="text" id="supplier-phone" class="form-control" placeholder="e.g. 09123456789" />
+            </div>
+            <div class="form-group">
+              <label for="supplier-address">Address</label>
+              <input type="text" id="supplier-address" class="form-control" placeholder="e.g. 123 Main St, City" />
+            </div>
           </div>
         </form>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" id="supplier-cancel-btn">Cancel</button>
         <button class="btn btn-primary"   id="supplier-save-btn">Add Supplier</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Delete Modal -->
+  <div class="modal-overlay" id="supplier-delete-overlay" role="dialog" aria-modal="true" aria-labelledby="supplier-delete-title">
+    <div class="modal" style="max-width:380px;">
+      <div class="modal-header">
+        <span class="modal-title" id="supplier-delete-title">Delete Supplier</span>
+        <button class="modal-close" id="supplier-delete-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to permanently delete <strong id="supplier-delete-name"></strong>? Linked items will be unassigned.</p>
+        <div id="supplier-delete-error" class="alert-banner alert-banner--error" hidden role="alert" style="margin-top:1rem;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="supplier-delete-cancel">Cancel</button>
+        <button class="btn btn-danger"    id="supplier-delete-confirm">Delete</button>
       </div>
     </div>
   </div>

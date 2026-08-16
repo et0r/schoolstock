@@ -25,8 +25,19 @@
           <i class="fas fa-box-open"></i> Item Detail
         </h1>
       </div>
+      <!-- Desktop header actions (hidden on mobile) -->
       <div style="display:flex;gap:0.6rem;" id="header-actions"></div>
     </header>
+
+    <!-- Mobile sticky bottom bar (shown on mobile only) -->
+    <div class="idm-sticky-bar" id="idm-sticky-bar" style="display:none;">
+      <a href="products" class="btn btn-secondary" id="idm-back-btn">
+        <i class="fas fa-arrow-left"></i> Back
+      </a>
+      <button class="btn btn-primary" id="idm-log-btn" style="flex:1;justify-content:center;">
+        <i class="fas fa-arrow-right-arrow-left"></i> Log Movement
+      </button>
+    </div>
 
     <main class="page-body" id="detail-body">
       <div class="spinner-wrapper">
@@ -86,7 +97,7 @@
 import { apiGet, apiPost } from './js/api.js';
 import { requireAuth, isAdmin, getUser } from './js/auth.js';
 import { initNav }  from './js/nav.js';
-import { esc, setLoading } from './js/products.js'; // reuse helpers
+
 
 const user = requireAuth();
 initNav(user);
@@ -119,11 +130,15 @@ function statusBadge(qty) {
 }
 
 function typeLabel(type) {
-  return { added: 'Added', returned: 'Returned', issued: 'Issued', removed: 'Removed' }[type] || type;
+  if (type === 'added' || type === 'in') return 'Stock Added';
+  if (type === 'issued' || type === 'out') return 'Stock Issued';
+  if (type === 'returned') return 'Stock Returned';
+  if (type === 'removed') return 'Stock Removed';
+  return String(type).charAt(0).toUpperCase() + String(type).slice(1);
 }
 
 function typeBadgeClass(type) {
-  if (type === 'added' || type === 'returned') return 'badge-stock-in';
+  if (type === 'added' || type === 'returned' || type === 'in') return 'badge-stock-in';
   return 'badge-stock-out';
 }
 
@@ -158,15 +173,17 @@ async function loadDetail() {
     const data = await apiGet(`/api/items/${itemId}`);
     const { item, transactions } = data;
 
-    // Update page title
+    // Update page title (visible on desktop only — hidden on mobile via CSS)
     document.title = `${item.name} — SchoolStock`;
     document.getElementById('page-title-el').innerHTML =
       `<i class="fas fa-box-open"></i> ${esc(item.name)}`;
 
-    // Header actions
+    const isMobile = window.innerWidth <= 768;
+
+    // Desktop header actions
     const ha = document.getElementById('header-actions');
     ha.innerHTML = `
-      <a href="products.html" class="btn btn-secondary">
+      <a href="products" class="btn btn-secondary">
         <i class="fas fa-arrow-left"></i> Back
       </a>
       <button class="btn btn-primary" id="btn-log-movement">
@@ -175,87 +192,190 @@ async function loadDetail() {
     `;
     document.getElementById('btn-log-movement').addEventListener('click', openMovementModal);
 
+    // Mobile sticky bottom bar
+    const stickyBar = document.getElementById('idm-sticky-bar');
+    if (stickyBar) {
+      stickyBar.style.display = isMobile ? 'flex' : 'none';
+      const logBtn = document.getElementById('idm-log-btn');
+      if (logBtn) logBtn.addEventListener('click', openMovementModal);
+    }
+
+    // Add class to page-body for zero padding on mobile
+    body.classList.add('item-detail-page');
+
+
     const s   = stockStatus(item.quantity);
-    const img = item.image_url
+    const imgTag = item.image_url
       ? `<img src="${esc(item.image_url)}" alt="${esc(item.name)}" style="width:100%;height:100%;object-fit:cover;border-radius:var(--radius-lg);" />`
       : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--color-text-faint);font-size:2.5rem;"><i class="fas fa-image"></i></div>`;
 
-    body.innerHTML = `
-      <!-- Top info card -->
-      <div class="card section-gap">
-        <div class="card-body" style="display:grid;grid-template-columns:200px 1fr;gap:2rem;align-items:start;">
-          <div style="width:200px;height:200px;border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--color-border);background:var(--color-bg);flex-shrink:0;">
-            ${img}
-          </div>
-          <div>
-            <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;margin-bottom:0.5rem;">
-              <h2 style="font-size:1.5rem;font-weight:800;color:var(--color-text);letter-spacing:-0.5px;">${esc(item.name)}</h2>
-              ${statusBadge(item.quantity)}
-            </div>
-            ${item.sku ? `<p style="font-size:0.82rem;color:var(--color-text-muted);margin-bottom:1rem;">SKU: ${esc(item.sku)}</p>` : ''}
+    // ── Mobile hero image HTML ──────────────────────────
+    const mobileImgInner = item.image_url
+      ? `<img src="${esc(item.image_url)}" alt="${esc(item.name)}" />`
+      : `<div class="idm-hero-placeholder"><i class="fas fa-image"></i></div>`;
 
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1rem;margin-top:1rem;">
-              ${infoBox('fa-cubes','Quantity',`<span class="qty-tag ${s}" style="font-size:1.1rem;padding:0.3rem 0.8rem;">${item.quantity}</span>`)}
-              ${infoBox('fa-tag','Category', esc(item.category || '—'))}
-              ${infoBox('fa-building','Department', esc(item.department || '—'))}
-              ${infoBox('fa-circle-info','Condition', esc(item.condition || '—'))}
-              ${infoBox('fa-ruler','Unit', esc(item.unit || '—'))}
-              ${infoBox('fa-calendar','Added', item.created_at ? fmtDate(item.created_at) : '—')}
+    // ── TX direction helper ─────────────────────────────
+    const txDir = (type) => (type === 'in' || type === 'added' || type === 'returned') ? 'in' : 'out';
+    const txSign = (type) => txDir(type) === 'in' ? '+' : '-';
+    const txIconClass = (type) => (type === 'in' || type === 'added') ? 'fa-circle-plus' : type === 'returned' ? 'fa-rotate-left' : (type === 'out' || type === 'issued') ? 'fa-circle-minus' : 'fa-trash';
+
+    // ── Mobile transaction cards ────────────────────────
+    const txMobileHtml = transactions.length === 0
+      ? `<div class="empty-state" style="padding:2rem 1.25rem;"><i class="fas fa-clock-rotate-left"></i><p>No transactions yet.</p></div>`
+      : transactions.map(tx => {
+          const dir = txDir(tx.type);
+          return `
+            <div class="idm-tx-card">
+              <div class="idm-tx-icon ${dir}">
+                <i class="fas ${txIconClass(tx.type)}"></i>
+              </div>
+              <div class="idm-tx-body">
+                <div class="idm-tx-type">${typeLabel(tx.type)}</div>
+                <div class="idm-tx-meta">${fmtDate(tx.timestamp)}${tx.notes ? ` · ${esc(tx.notes)}` : ''}</div>
+              </div>
+              <div class="idm-tx-qty ${dir}">${txSign(tx.type)}${tx.quantity_changed}</div>
+            </div>`;
+        }).join('');
+
+    body.innerHTML = `
+      <!-- ─── MOBILE LAYOUT ─────────────────────────────── -->
+      <div class="item-detail-mobile">
+
+        <!-- Hero image -->
+        <div class="idm-hero">
+          ${mobileImgInner}
+          <div class="idm-hero-badge">${statusBadge(item.quantity)}</div>
+        </div>
+
+        <!-- Name + SKU -->
+        <div class="idm-identity">
+          <div class="idm-name">${esc(item.name)}</div>
+          ${item.sku ? `<div class="idm-sku">SKU: ${esc(item.sku)}</div>` : ''}
+        </div>
+
+        <!-- Quick-stat strip: Qty · Unit · Condition -->
+        <div class="idm-stat-strip">
+          <div class="idm-stat-strip-item">
+            <div class="idm-stat-strip-label">Quantity</div>
+            <div class="idm-stat-strip-value">
+              <span class="qty-tag ${s}" style="font-size:0.9rem;">${item.quantity}</span>
             </div>
+          </div>
+          <div class="idm-stat-strip-item">
+            <div class="idm-stat-strip-label">Unit</div>
+            <div class="idm-stat-strip-value">${esc(item.unit || '—')}</div>
+          </div>
+          <div class="idm-stat-strip-item">
+            <div class="idm-stat-strip-label">Condition</div>
+            <div class="idm-stat-strip-value">${esc(item.condition || '—')}</div>
           </div>
         </div>
+
+        <!-- Details section -->
+        <div class="idm-section">
+          <div class="idm-section-title"><i class="fas fa-circle-info"></i> Details</div>
+          ${item.category ? `
+          <div class="idm-detail-row">
+            <div class="idm-detail-icon"><i class="fas fa-tag"></i></div>
+            <div class="idm-detail-label">Category</div>
+            <div class="idm-detail-value">${esc(item.category)}</div>
+          </div>` : ''}
+          ${item.department ? `
+          <div class="idm-detail-row">
+            <div class="idm-detail-icon"><i class="fas fa-building"></i></div>
+            <div class="idm-detail-label">Department</div>
+            <div class="idm-detail-value">${esc(item.department)}</div>
+          </div>` : ''}
+          ${item.created_at ? `
+          <div class="idm-detail-row">
+            <div class="idm-detail-icon"><i class="fas fa-calendar"></i></div>
+            <div class="idm-detail-label">Added</div>
+            <div class="idm-detail-value" style="font-size:0.78rem;">${fmtDate(item.created_at)}</div>
+          </div>` : ''}
+        </div>
+
+        <!-- Transaction history section -->
+        <div class="idm-section" style="margin-bottom:1rem;">
+          <div class="idm-section-title"><i class="fas fa-clock-rotate-left"></i> History <span style="margin-left:auto;font-weight:400;">Last 20</span></div>
+          ${txMobileHtml}
+        </div>
+
       </div>
 
-      <!-- Transaction history -->
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title"><i class="fas fa-clock-rotate-left"></i> Transaction History</span>
-          <span style="font-size:0.78rem;color:var(--color-text-muted);">Last 20 entries</span>
+      <!-- ─── DESKTOP LAYOUT ────────────────────────────── -->
+      <div class="item-detail-desktop">
+
+        <!-- Top info card -->
+        <div class="card section-gap">
+          <div class="card-body" style="display:grid;grid-template-columns:200px 1fr;gap:2rem;align-items:start;">
+            <div style="width:200px;height:200px;border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--color-border);background:var(--color-bg);flex-shrink:0;">
+              ${imgTag}
+            </div>
+            <div>
+              <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;margin-bottom:0.5rem;">
+                <h2 style="font-size:1.5rem;font-weight:800;color:var(--color-text);letter-spacing:-0.5px;">${esc(item.name)}</h2>
+                ${statusBadge(item.quantity)}
+              </div>
+              ${item.sku ? `<p style="font-size:0.82rem;color:var(--color-text-muted);margin-bottom:1rem;">SKU: ${esc(item.sku)}</p>` : ''}
+
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1rem;margin-top:1rem;">
+                ${infoBox('fa-cubes','Quantity',`<span class="qty-tag ${s}" style="font-size:1.1rem;padding:0.3rem 0.8rem;">${item.quantity}</span>`)}
+                ${infoBox('fa-tag','Category', esc(item.category || '—'))}
+                ${infoBox('fa-building','Department', esc(item.department || '—'))}
+                ${infoBox('fa-circle-info','Condition', esc(item.condition || '—'))}
+                ${infoBox('fa-ruler','Unit', esc(item.unit || '—'))}
+                ${infoBox('fa-calendar','Added', item.created_at ? fmtDate(item.created_at) : '—')}
+              </div>
+            </div>
+          </div>
         </div>
-        ${transactions.length === 0
-          ? `<div class="empty-state"><i class="fas fa-clock-rotate-left"></i><p>No transactions recorded for this item yet.</p></div>`
-          : `<div class="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Type</th>
-                    <th>Qty Changed</th>
-                    <th>Performed By</th>
-                    <th>Date &amp; Time</th>
-                    <th>Notes</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${transactions.map(tx => `
+
+        <!-- Transaction history table -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title"><i class="fas fa-clock-rotate-left"></i> Transaction History</span>
+            <span style="font-size:0.78rem;color:var(--color-text-muted);">Last 20 entries</span>
+          </div>
+          ${transactions.length === 0
+            ? `<div class="empty-state"><i class="fas fa-clock-rotate-left"></i><p>No transactions recorded for this item yet.</p></div>`
+            : `<div class="table-wrapper">
+                <table>
+                  <thead>
                     <tr>
-                      <td>
-                        <span class="badge ${typeBadgeClass(tx.type)}">
-                          <i class="fas ${typeIcon(tx.type)}"></i>
-                          ${typeLabel(tx.type)}
-                        </span>
-                      </td>
-                      <td>
-                        <span style="font-weight:700;color:${tx.type==='added'||tx.type==='returned'?'var(--color-success-dark)':'var(--color-danger)'};">
-                          ${tx.type==='added'||tx.type==='returned' ? '+' : '-'}${tx.quantity_changed}
-                        </span>
-                      </td>
-                      <td class="td-muted">${esc(tx.performed_by || 'Unknown')}</td>
-                      <td class="td-muted" style="white-space:nowrap;">${fmtDate(tx.timestamp)}</td>
-                      <td class="td-muted">${esc(tx.notes || '—')}</td>
+                      <th>Type</th>
+                      <th>Qty Changed</th>
+                      <th>Performed By</th>
+                      <th>Date &amp; Time</th>
+                      <th>Notes</th>
                     </tr>
-                  `).join('')}
-                </tbody>
-              </table>
-            </div>`
-        }
+                  </thead>
+                  <tbody>
+                    ${transactions.map(tx => `
+                      <tr>
+                        <td>
+                          <span class="badge ${typeBadgeClass(tx.type)}">
+                            <i class="fas ${typeIcon(tx.type)}"></i>
+                            ${typeLabel(tx.type)}
+                          </span>
+                        </td>
+                        <td>
+                          <span style="font-weight:700;color:${tx.type==='added'||tx.type==='returned'?'var(--color-success-dark)':'var(--color-danger)'};">
+                            ${tx.type==='added'||tx.type==='returned' ? '+' : '-'}${tx.quantity_changed}
+                          </span>
+                        </td>
+                        <td class="td-muted">${esc(tx.performed_by || 'Unknown')}</td>
+                        <td class="td-muted" style="white-space:nowrap;">${fmtDate(tx.timestamp)}</td>
+                        <td class="td-muted">${esc(tx.notes || '—')}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>`
+          }
+        </div>
+
       </div>
     `;
-
-    // Mobile: collapse image
-    if (window.innerWidth <= 640) {
-      const grid = body.querySelector('[style*="grid-template-columns:200px"]');
-      if (grid) grid.style.gridTemplateColumns = '1fr';
-    }
 
   } catch (err) {
     body.innerHTML = `<div class="alert-banner alert-banner--error"><i class="fas fa-triangle-exclamation"></i> ${esc(err.message || 'Failed to load item.')}</div>`;
@@ -307,7 +427,7 @@ saveBtn.addEventListener('click', async () => {
 
   const restore = setLoading(saveBtn, 'Saving…');
   try {
-    await apiPost('/api/transactions', {
+    await apiPost('/api/stock-transactions', {
       item_id: itemId,
       type,
       quantity_changed: qty,

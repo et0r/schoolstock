@@ -41,11 +41,13 @@ function alertCard(item, severity) {
       </div>
       <div class="alert-item-info">
         <p class="alert-item-name">${esc(item.name)}</p>
-        <p class="alert-item-meta">
-          ${item.sku ? `SKU: ${esc(item.sku)} · ` : ''}
-          ${item.category ? `Category: ${esc(item.category)} · ` : ''}
-          Unit: ${esc(item.unit || '—')}
-        </p>
+        <div class="alert-item-meta" style="display:flex; flex-wrap:wrap; gap:0.4rem; align-items:center;">
+          ${item.sku ? `<span>SKU: ${esc(item.sku)}</span>` : ''}
+          ${item.sku && item.category ? `<span>·</span>` : ''}
+          ${item.category ? `<span>Cat: ${esc(item.category)}</span>` : ''}
+          ${(item.sku || item.category) ? `<span>·</span>` : ''}
+          <span>Unit: ${esc(item.unit || '—')}</span>
+        </div>
         ${!isDanger ? `
         <div style="margin-top:0.5rem;">
           <div class="stock-bar-wrapper" style="min-width:120px; display:inline-block; vertical-align:middle;">

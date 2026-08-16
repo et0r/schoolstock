@@ -241,36 +241,36 @@ function renderUsers() {
     const avatar = displayName.slice(0, 2).toUpperCase();
 
     return `
-      <div class="product-card">
-        <div style="width:3rem;height:3rem;border-radius:50%;background:var(--gradient-accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:0.85rem;font-weight:700;flex-shrink:0;">
-          ${esc(avatar)}
+      <div class="user-card">
+        <div class="user-card-header">
+          <div class="user-card-avatar">${esc(avatar)}</div>
+          <div class="user-card-info">
+            <h3 class="user-card-name">
+              ${esc(displayName)}
+              ${isSelf ? '<span class="badge badge-accent" style="font-size:0.62rem;padding:0.15rem 0.4rem;">You</span>' : ''}
+            </h3>
+            <div class="user-card-handle">
+              @${esc(displayUsername)}<br>
+              <span style="color:var(--color-text-faint); font-size:0.75rem;">Joined ${fmtDate(u.created_at)}</span>
+            </div>
+          </div>
+          <div class="user-card-role-badge">
+            ${roleBadge(u.role)}
+          </div>
         </div>
-        <div class="product-card-body">
-          <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
-            <p class="product-card-name">${esc(displayName)}</p>
-            ${isSelf ? '<span class="badge badge-accent" style="font-size:0.62rem;">You</span>' : ''}
-          </div>
-          <div style="font-size:0.8rem;color:var(--color-text-muted);margin-bottom:0.4rem;">
-            @${esc(displayUsername)} ${u.email ? `<br>${esc(u.email)}` : ''}
-          </div>
-          <div class="product-card-meta">
-            <span>${roleBadge(u.role)}</span>
-            <span><i class="fas fa-calendar"></i> ${fmtDate(u.created_at)}</span>
-          </div>
-          ${!isSelf ? `
-          <div style="display:flex;gap:0.5rem;margin-top:0.65rem;flex-wrap:wrap;">
-            <select class="form-control role-select" data-id="${u.id}" style="font-size:0.78rem;padding:0.35rem 0.6rem;flex:1;min-width:100px;">
-              <option value="${u.role}" selected disabled>${u.role.charAt(0).toUpperCase() + u.role.slice(1)}</option>
-              ${roleOptions}
-            </select>
-            <button class="btn-action-edit btn-promote" data-id="${u.id}" title="Apply role change">
-              <i class="fas fa-check"></i> Apply
-            </button>
-            <button class="btn-action-delete btn-delete-user" data-id="${u.id}" data-name="${esc(u.username)}">
-              <i class="fas fa-trash"></i>
-            </button>
-          </div>` : ''}
-        </div>
+        ${!isSelf ? `
+        <div class="user-card-footer">
+          <select class="role-select" data-id="${u.id}">
+            <option value="${u.role}" selected disabled>${u.role.charAt(0).toUpperCase() + u.role.slice(1)}</option>
+            ${roleOptions}
+          </select>
+          <button class="user-card-btn apply btn-promote" data-id="${u.id}" title="Apply role change">
+            <i class="fas fa-check"></i>
+          </button>
+          <button class="user-card-btn delete btn-delete-user" data-id="${u.id}" data-name="${esc(u.username)}" title="Delete user">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>` : ''}
       </div>`;
   }).join('');
 

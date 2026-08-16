@@ -42,11 +42,20 @@ function resolveType(type) {
   return isIn ? 'in' : 'out';
 }
 
+function typeLabel(type) {
+  if (type === 'added' || type === 'in') return 'Stock Added';
+  if (type === 'issued' || type === 'out') return 'Stock Issued';
+  if (type === 'returned') return 'Stock Returned';
+  if (type === 'removed') return 'Stock Removed';
+  return String(type).charAt(0).toUpperCase() + String(type).slice(1);
+}
+
 function typeBadge(type) {
   const dir = resolveType(type);
+  const lbl = typeLabel(type);
   return dir === 'in'
-    ? `<span class="badge badge-stock-in"><i class="fas fa-arrow-down" aria-hidden="true"></i> Stock In</span>`
-    : `<span class="badge badge-stock-out"><i class="fas fa-arrow-up" aria-hidden="true"></i> Stock Out</span>`;
+    ? `<span class="badge badge-stock-in"><i class="fas fa-arrow-down" aria-hidden="true"></i> ${lbl}</span>`
+    : `<span class="badge badge-stock-out"><i class="fas fa-arrow-up" aria-hidden="true"></i> ${lbl}</span>`;
 }
 
 // ── Table render ──────────────────────────────────────────────────────────────
@@ -68,6 +77,8 @@ function renderTable() {
         <p>No stock movements recorded yet.</p>
       </div>
     </td></tr>`;
+    const cardGrid = document.getElementById('movements-card-grid');
+    if (cardGrid) cardGrid.innerHTML = `<div class="empty-state"><i class="fas fa-right-left"></i><p>No stock movements.</p></div>`;
     return;
   }
 
@@ -87,6 +98,40 @@ function renderTable() {
         <td class="td-muted">${esc(tx.notes || '—')}</td>
       </tr>`;
   }).join('');
+
+  const cardGrid = document.getElementById('movements-card-grid');
+  if (cardGrid) {
+    cardGrid.innerHTML = sorted.map((tx) => {
+      const item = itemMap[tx.item_id];
+      const itemName = item ? esc(item.name) : `Item #${tx.item_id}`;
+      const badge = typeBadge(tx.type);
+      const isOk = resolveType(tx.type) === 'in';
+      const qtyClass = isOk ? 'ok' : 'out';
+      const sign = isOk ? '+' : '-';
+      
+      return `
+        <div class="product-card">
+          <div class="product-card-header">
+            <div class="product-card-image" style="background:var(--color-bg);color:var(--color-text-faint);">
+              <i class="fas fa-right-left"></i>
+            </div>
+            <div class="product-card-info">
+              <div class="product-card-name">${itemName}</div>
+              <div class="product-card-sku">${formatDate(tx.timestamp)}</div>
+            </div>
+          </div>
+          ${tx.notes ? `<div class="product-card-meta"><span><i class="fas fa-note-sticky"></i> ${esc(tx.notes)}</span></div>` : ''}
+          <div class="product-card-footer">
+            <div class="product-card-footer-left" style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+              <span class="qty-tag ${qtyClass}">${sign}${esc(tx.quantity_changed)}</span>
+              ${badge}
+            </div>
+            <div class="product-card-actions">
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
 }
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
