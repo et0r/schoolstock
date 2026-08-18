@@ -9,6 +9,6 @@ module.exports = (req, res, next) => {
         req.user = decoded; // Attach user payload to request
         next();
     } catch (err) {
-        res.status(400).json({ error: 'Invalid token.' });
+        res.status(401).json({ error: 'Invalid token.' });
     }
 };
