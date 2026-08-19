@@ -372,14 +372,30 @@ async function saveProduct() {
 
   try {
     if (editingId) {
-      // Edit — PUT (no image support for PUT in current backend; send JSON)
-      await apiPut(`/api/items/${editingId}`, {
-        name, sku: sku || undefined,
-        category_id, department_id,
-        supplier_id,
-        quantity,
-        condition, unit,
-      });
+      // Edit — PUT
+      if (imageFile) {
+        const fd = new FormData();
+        fd.append('name',          name);
+        if (sku) fd.append('sku',  sku);
+        fd.append('category_id',   category_id);
+        fd.append('department_id', department_id);
+        if (supplier_id) fd.append('supplier_id', supplier_id);
+        fd.append('quantity',      quantity);
+        fd.append('condition',     condition);
+        fd.append('unit',          unit);
+        fd.append('image',         imageFile);
+        
+        await apiFetch(`/api/items/${editingId}`, { method: 'PUT', body: fd });
+      } else {
+        await apiPut(`/api/items/${editingId}`, {
+          name, sku: sku || undefined,
+          category_id, department_id,
+          supplier_id,
+          quantity,
+          condition, unit,
+        });
+      }
+      
       successBanner.textContent = 'Product updated successfully.';
       successBanner.hidden = false;
       setTimeout(() => { successBanner.hidden = true; }, 4000);
