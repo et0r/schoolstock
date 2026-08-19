@@ -76,6 +76,7 @@ exports.getAllItems = async (req, res) => {
 exports.updateItem = async (req, res) => {
     try {
         const { id } = req.params; // Get the ID from the URL
+        console.log(`[DEBUG] PUT /api/items/${id} - Received req.file: ${!!req.file}`);
         const { name, sku, category_id, department_id, quantity, condition, unit } = req.body;
 
         if (!name || !category_id || !department_id || !condition || !unit) {
