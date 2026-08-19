@@ -42,7 +42,7 @@ app.post("/api/auth/login",    login);
 app.post(  "/api/items",     authenticate, upload.single("image"), createItem);
 app.get(   "/api/items",     authenticate, getAllItems);
 app.get(   "/api/items/:id", authenticate, getItemById);   // NEW — item detail
-app.put(   "/api/items/:id", authenticate, updateItem);
+app.put(   "/api/items/:id", authenticate, upload.single("image"), updateItem);
 app.delete("/api/items/:id", authenticate, adminOnly, deleteItem);
 
 // ── Lookup routes (categories / departments) ──────────────────────────────────

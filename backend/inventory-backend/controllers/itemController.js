@@ -82,16 +82,41 @@ exports.updateItem = async (req, res) => {
             return res.status(400).json({ error: 'Please fill in all required fields.' });
         }
 
-        const [result] = await db.execute(
-            'UPDATE items SET name = ?, sku = ?, category_id = ?, department_id = ?, quantity = ?, `condition` = ?, unit = ? WHERE id = ?',
-            [name, sku || null, category_id, department_id, quantity || 0, condition, unit, id]
-        );
+        let imageUrl = undefined; // undefined means we won't update the column
+
+        if (req.file) {
+            const fileExtension = req.file.originalname.split('.').pop();
+            const fileName = `inventory/${Date.now()}-${Math.round(Math.random() * 1E9)}.${fileExtension}`;
+
+            const uploadParams = {
+                Bucket: process.env.AWS_S3_BUCKET_NAME,
+                Key: fileName,
+                Body: req.file.buffer,
+                ContentType: req.file.mimetype,
+            };
+
+            await s3Client.send(new PutObjectCommand(uploadParams));
+            imageUrl = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
+        }
+
+        let query = 'UPDATE items SET name = ?, sku = ?, category_id = ?, department_id = ?, quantity = ?, `condition` = ?, unit = ?';
+        let queryParams = [name, sku || null, category_id, department_id, quantity || 0, condition, unit];
+
+        if (imageUrl !== undefined) {
+            query += ', image_url = ?';
+            queryParams.push(imageUrl);
+        }
+
+        query += ' WHERE id = ?';
+        queryParams.push(id);
+
+        const [result] = await db.execute(query, queryParams);
 
         if (result.affectedRows === 0) {
             return res.status(404).json({ error: 'Item not found' });
         }
 
-        res.status(200).json({ message: 'Item updated successfully' });
+        res.status(200).json({ message: 'Item updated successfully', imageUrl });
     } catch (error) {
         console.error('Error updating item:', error);
 
