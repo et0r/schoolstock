@@ -56,8 +56,8 @@ app.post("/api/stock-transactions", authenticate, recordTransaction);
 // ── Supplier routes ──────────────────────────────────────────────────────────
 app.get(   "/api/suppliers",     authenticate, getAllSuppliers);
 app.get(   "/api/suppliers/:id", authenticate, getSupplierById);
-app.post(  "/api/suppliers",     authenticate, createSupplier);
-app.put(   "/api/suppliers/:id", authenticate, updateSupplier);
+app.post(  "/api/suppliers",     authenticate, adminOnly, createSupplier);
+app.put(   "/api/suppliers/:id", authenticate, adminOnly, updateSupplier);
 app.delete("/api/suppliers/:id", authenticate, adminOnly, deleteSupplier);
 
 // ── User management routes (admin only) ───────────────────────────────────────
@@ -69,6 +69,20 @@ app.delete("/api/users/:id",      authenticate, adminOnly, deleteUser);
 app.get("/api/health", (req, res) =>
     res.json({ status: "ok", timestamp: new Date().toISOString() })
 );
+
+// ── Multer error handler ──────────────────────────────────────────────────────
+// Must be defined AFTER all routes and with 4 parameters so Express
+// treats it as an error-handling middleware.
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({
+            error: 'File too large. Images must be 5 MB or smaller.',
+        });
+    }
+    // Pass any other errors to Express's default handler
+    next(err);
+});
 
 const PORT = process.env.PORT || 5000;
 
@@ -88,8 +102,8 @@ app.listen(PORT, () => {
     console.log("     GET    /api/departments        (auth)");
     console.log("     GET    /api/suppliers          (auth)");
     console.log("     GET    /api/suppliers/:id      (auth)");
-    console.log("     POST   /api/suppliers          (auth)");
-    console.log("     PUT    /api/suppliers/:id      (auth)");
+    console.log("     POST   /api/suppliers          (auth + admin)");
+    console.log("     PUT    /api/suppliers/:id      (auth + admin)");
     console.log("     DELETE /api/suppliers/:id      (auth + admin)");
     console.log("     GET    /api/users              (auth + admin)");
     console.log("     PATCH  /api/users/:id/role     (auth + admin)");

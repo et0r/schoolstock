@@ -129,9 +129,9 @@ function renderTable() {
         </td>
         <td>
           <div class="td-actions">
-            <button class="btn-action-edit btn-edit-supplier" data-id="${s.id}" title="Edit supplier">
+            ${isAdmin() ? `<button class="btn-action-edit btn-edit-supplier" data-id="${s.id}" title="Edit supplier">
               <i class="fas fa-pencil"></i>
-            </button>
+            </button>` : ''}
             ${isAdmin() ? `<button class="btn-action-delete btn-delete-supplier"
               data-id="${s.id}" data-name="${esc(s.name)}" title="Delete supplier">
               <i class="fas fa-trash"></i>
@@ -166,9 +166,9 @@ function renderTable() {
               <span class="qty-tag ok"><i class="fas fa-box" style="font-size:0.7rem;"></i> ${pc} item${pc !== 1 ? 's' : ''}</span>
             </div>
             <div class="product-card-actions">
-              <button class="btn-action-edit btn-edit-supplier" data-id="${s.id}" title="Edit">
+              ${isAdmin() ? `<button class="btn-action-edit btn-edit-supplier" data-id="${s.id}" title="Edit">
                 <i class="fas fa-pencil"></i>
-              </button>
+              </button>` : ''}
               ${isAdmin() ? `<button class="btn-action-delete btn-delete-supplier"
                 data-id="${s.id}" data-name="${esc(s.name)}" title="Delete">
                 <i class="fas fa-trash"></i>
@@ -310,7 +310,12 @@ async function loadData() {
 }
 
 // ── Event wiring ──────────────────────────────────────────────────────────────
-document.getElementById('btn-add-supplier').addEventListener('click', openAddModal);
+const addSupplierBtn = document.getElementById('btn-add-supplier');
+if (!isAdmin()) {
+  // Non-admins cannot create or edit suppliers — hide the Add button
+  if (addSupplierBtn) addSupplierBtn.hidden = true;
+}
+addSupplierBtn.addEventListener('click', openAddModal);
 saveBtn.addEventListener('click', saveSupplier);
 cancelBtn.addEventListener('click', closeModal);
 closeBtn.addEventListener('click', closeModal);
