@@ -17,8 +17,9 @@ exports.register = async (req, res) => {
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-        // Default to 'staff' if no role is provided or if an invalid role is sent
-        const userRole = role === 'admin' ? 'admin' : 'staff';
+        // Always register as 'staff' — role escalation via the API is not permitted.
+        // Admins can promote users later via the User Management page.
+        const userRole = 'staff';
 
         // Insert into the database
         const [result] = await db.execute(
